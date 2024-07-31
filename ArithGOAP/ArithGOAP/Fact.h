@@ -115,7 +115,7 @@ namespace ArithGOAP
         CNumericFact* DefineNumber(const SVariableRange& Range, SNumber DistanceWeight = 1);
         CNumericFact* DefineNumber(const SVariableRange& Range, const CHeuristicFunctor& HeuristicFunctor);
 
-        int GetFactCount() const { return (int) mFacts.size(); }
+        int GetFactAmount() const { return (int) mFacts.size(); }
         const CFact* GetFact(int Index) const;
         const CFact* GetFact(const std::string& Name) const;
 

@@ -43,6 +43,7 @@ namespace ArithGOAP
         EOperator GetOperator() const { return Operator; }
         SNumber GetOperand() const { return Operand; }
 
+        // Whether the operation is nil
         bool IsNil() const { return Operator == EOperator::nil; }
         // Apply this transformation to the given number
         void ApplyTo(SNumber& Number) const;
@@ -61,12 +62,13 @@ namespace ArithGOAP
         friend class CAction;
     public:
         CEffect(const CStateDefinition& Def);
-        std::string ToString() const; // for debug
+        std::string ToString() const; // For debug
 
         const CStateDefinition& GetDefinition() const { return mDefinition; }
 
         bool IsNil() const;
-        int GetTransformCount() const { return (int) mTransforms.size(); }
+        int GetTransformAmount() const { return (int) mTransforms.size(); }
+        int GetTransformCount() const;
         const CTransform& GetTransform(const CFact& Fact) const;
         const CTransform& GetTransform(int Index) const;
         bool SetTransform(const CFact& Fact, const CTransform& Transform);

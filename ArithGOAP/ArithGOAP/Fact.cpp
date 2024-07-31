@@ -209,14 +209,10 @@ CHeuristicFunctor CStateDefinition::GenerateHeuristicFunctor(EFactType Type, SNu
         };
 
     case EFactType::number:
-        return [BaseCost, DistanceWeight](const SInterval& Source, const SInterval& Aim)
+        return [DistanceWeight](const SInterval& Source, const SInterval& Aim)
         { 
             SNumber Result = Source.GetGap(Aim);
-            if (Result != 0)
-            {
-                Result *= DistanceWeight;
-                Result += BaseCost;
-            }
+            Result *= DistanceWeight;
             return Result;
         };
     }
@@ -259,13 +255,13 @@ SNumber CStateDefinition::GetHeuristicCost(const CState& SourceState, const CSta
     for (const auto& Fact : mFacts)
     {
         const int Index = Fact->GetIndex();
-        const SInterval& Source = SourceState.GetFact(Index);
-        if (!Source)
+        const SInterval& Aim = DesiredState.GetFact(Index);
+        if (!Aim)
         {
             continue;
         }
 
-        if (const SInterval& Aim = DesiredState.GetFact(Index))
+        if (const SInterval& Source = SourceState.GetFact(Index))
         {
             Result += Fact->GetHeuristicFunctor()(Source, Aim);
         }

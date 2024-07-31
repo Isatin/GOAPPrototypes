@@ -23,6 +23,9 @@ namespace ArithGOAP
         const std::string& GetName() const { return mName; }
         void SetName(const std::string& Value) { mName = Value; }
 
+        float GetBaseCost() const { return mBaseCost; }
+        void SetBaseCost(float Value) { mBaseCost = Value; }
+
         const CStateDefinition& GetDefinition() const { return mPrecondition.GetDefinition(); }
 
         CState& GetPrecondition() { return mPrecondition; }
@@ -40,16 +43,19 @@ namespace ArithGOAP
         // Return a description of preconditions and effects
         virtual std::string ToString() const;
         // For forward search to check feasibility
-        virtual bool CheckPrecondition(const CState& State) const; // for forward search
+        virtual bool CheckPrecondition(const CState& State) const;
         // For regressive search to check feasibility. If ok, return desired facts after the action is undone.
         virtual std::optional<std::vector<SInterval>> CheckPostcondition(const CState& State) const; 
-        // Customizable cost of the action
-        virtual float GetCost(const CState& CurrentState, const CState& NextState) const { return 1.f; }
-        // Overridable function invoked on the state of each search node for customization
+        // Overridable function invoked on the state of each search node for customization. Modification to facts must NOT be made. 
         virtual void Affect(CState& State) const {}
+        // Customizable cost of the action
+        virtual float GetCustomCost(const CState& CurrentState, const CState& NextState) const { return 0.f; }
+        // Total cost of the action
+        float GetCost(const CState& CurrentState, const CState& NextState) const { return mBaseCost + GetCustomCost(CurrentState, NextState); }
 
     private:
         std::string mName;
+        float mBaseCost = 1.f;
         CState mPrecondition;
         CEffect mEffect;
     };

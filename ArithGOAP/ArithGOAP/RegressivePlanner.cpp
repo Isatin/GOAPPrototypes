@@ -14,7 +14,7 @@ using namespace ArithGOAP;
 std::string CRegressivePlanner::SNode::ToString() const
 {
     std::stringstream Stream;
-    Stream << "{Cost=" << GetTotalCost() << "=(" << CurrentCost << "+" << PreviousCost << ")+";
+    Stream << "{Cost=" << GetTotalCost() << "=(" << PreviousCost << "+" << CurrentCost << ")+";
 
     if (ExtraHeuristicCost == 0.f)
     {
@@ -44,8 +44,8 @@ bool CRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CState&
 
     SNode& RootNode = Nodes.emplace_back();
     RootNode.ConstState = &GoalState;
-    RootNode.BasicHeuristicCost = GoalState.GetBasicHeuristicCost(StartingState);
-    RootNode.ExtraHeuristicCost = GoalState.GetExtraHeuristicCost(StartingState);
+    RootNode.BasicHeuristicCost = StartingState.GetBasicHeuristicCost(GoalState);
+    RootNode.ExtraHeuristicCost = StartingState.GetExtraHeuristicCost(GoalState);
 
     std::multimap<float, int> OpenMap; // a.k.a open set in A*
     OpenMap.emplace(RootNode.GetTotalCost(), 0);
@@ -97,10 +97,10 @@ void CRegressivePlanner::Explore(std::multimap<float, int>& oOpenMap, std::vecto
     ChildNode.ConstState = ChildNode.MutableState.get();
     ChildNode.Parent = NodeIndex;
     ChildNode.Depth = CurrNode.Depth + 1;
-    ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
     ChildNode.PreviousCost = CurrNode.GetActualCost();
-    ChildNode.BasicHeuristicCost = ChildNode.ConstState->GetBasicHeuristicCost(StartingState);
-    ChildNode.ExtraHeuristicCost = ChildNode.ConstState->GetExtraHeuristicCost(StartingState);
+    ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
+    ChildNode.BasicHeuristicCost = StartingState.GetBasicHeuristicCost(*ChildNode.ConstState);
+    ChildNode.ExtraHeuristicCost = StartingState.GetExtraHeuristicCost(*ChildNode.ConstState);
     float TotalCost = ChildNode.GetTotalCost();
     oOpenMap.emplace(TotalCost, ChildIdx);
 }

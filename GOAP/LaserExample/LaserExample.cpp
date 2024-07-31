@@ -2,8 +2,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // This example is from Orkin's "Applying Goal-Oriented Action Planning to Games" but simplified.
 // It shows that GOAP can not only support Boolean but also enumerations.
-// Also, it demonstrates that the improved regressive GOAP can deal with inconsistency between
-// preconditions and effects of the same actions (see ActivateGenerator). 
+// Also, it demonstrates that the improved regressive GOAP can deal with actions of inconsistent 
+// preconditions and effects (see the Switch settings of ActivateGenerator). 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -36,7 +36,7 @@ protected:
         {
             if (std::optional<PFact> CurrentPlace = State.GetFact("At"))
             {
-                if (MyPlace == CurrentPlace) // Disallow the same start and destination
+                if (MyPlace == CurrentPlace) // Disallow actions from and to the same place
                 {
                     return false;
                 }

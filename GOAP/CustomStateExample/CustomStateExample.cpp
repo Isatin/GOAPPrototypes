@@ -1,14 +1,16 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows that GOAP can be used to find the shortest route for something
-// and that customizable GOAP systems could be useful.
+// This example shows that GOAP can be used to find the shortest route for something and that 
+// customizable GOAP systems could be useful.
 // 
-// Suppose that there are three ammo boxes and three guns in the virtual world.
-// The first gun is the closest gun to the origin, and the second ammo box is the closest ammo to the origin,
-// while the third gun and ammo are the cloest route.
+// Suppose that there are three ammo boxes and three guns in a level and an agent at the origin 
+// tries to get a gun and ammo to shoot its target. The first gun is the closest gun to the origin, 
+// and the second ammo box is the closest ammo to the origin, while the third gun and ammo box are 
+// the shortest route.
+// 
 // A local optimal algorithm may go get the closest gun or ammo then go get the closest ammo or gun,
-// which would fail to find the shortest route in this case.
-// By contrast, GOAP can look ahead and take more possibilities into consideration.
+// which would fail to find the shortest route in this case. By contrast, GOAP can look ahead and 
+// take more possibilities into consideration.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iomanip>
@@ -90,7 +92,7 @@ protected:
         }
     }
 
-    float GetCost(const CState& CurrentState, const CState& NextState) const override
+    float GetCustomCost(const CState& CurrentState, const CState& NextState) const override
     {
         const CStateWithPosition* CurrentPosState = dynamic_cast<const CStateWithPosition*>(&CurrentState);
         if (!CurrentPosState)

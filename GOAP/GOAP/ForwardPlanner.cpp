@@ -78,8 +78,8 @@ void CForwardPlanner::Explore(std::multimap<float, int>& oOpenMap, std::vector<S
     ChildNode.ConstState = ChildNode.MutableState.get();
     ChildNode.Parent = NodeIndex;
     ChildNode.Depth = CurrNode.Depth + 1;
-    ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
     ChildNode.PreviousCost = CurrNode.GetActualCost();
+    ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
     ChildNode.BasicHeuristicCost = (float) GoalState.GetUnsatisfactionCount(*ChildNode.ConstState);
     ChildNode.ExtraHeuristicCost = ChildNode.ConstState->GetExtraHeuristicCost(GoalState);
     float TotalCost = ChildNode.GetTotalCost();

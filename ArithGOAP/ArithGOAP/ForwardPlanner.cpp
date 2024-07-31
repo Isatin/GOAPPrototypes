@@ -14,7 +14,7 @@ using namespace ArithGOAP;
 std::string CForwardPlanner::SNode::ToString() const
 {
     std::stringstream Stream;
-    Stream << "{Cost=" << GetTotalCost() << "=(" << CurrentCost << "+" << PreviousCost << ")+";
+    Stream << "{Cost=" << GetTotalCost() << "=(" << PreviousCost << "+" << CurrentCost << ")+";
 
     if (ExtraHeuristicCost == 0.f)
     {
@@ -97,8 +97,8 @@ void CForwardPlanner::Explore(std::multimap<float, int>& oOpenMap, std::vector<S
     ChildNode.ConstState = ChildNode.MutableState.get();
     ChildNode.Parent = NodeIndex;
     ChildNode.Depth = CurrNode.Depth + 1;
-    ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
     ChildNode.PreviousCost = CurrNode.GetActualCost();
+    ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
     ChildNode.BasicHeuristicCost = ChildNode.ConstState->GetBasicHeuristicCost(GoalState);
     ChildNode.ExtraHeuristicCost = ChildNode.ConstState->GetExtraHeuristicCost(GoalState);
     float TotalCost = ChildNode.GetTotalCost();

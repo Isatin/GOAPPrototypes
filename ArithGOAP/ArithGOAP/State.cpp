@@ -13,7 +13,7 @@ using namespace ArithGOAP;
 CState::CState(const CStateDefinition& Def)
     : mDefinition(Def)
 { 
-    Expand(Def.GetFactCount());
+    Expand(Def.GetFactAmount());
 }
 
 CState::CState(const CStateDefinition& Def, std::vector<SInterval>&& Facts)
@@ -62,6 +62,21 @@ std::string CState::ToString() const
     }
 
     return Stream.str();
+}
+
+int CState::GetFactCount() const
+{
+    int Count = 0;
+
+    for (int i = 0; i < mValues.size(); i++)
+    {
+        if (mValues[i])
+        {
+            Count++;
+        }
+    }
+
+    return Count;
 }
 
 SInterval& CState::GetFact(int Index)

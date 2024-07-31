@@ -127,7 +127,7 @@ ETriStateCompletion CTransform::Neutralize(SInterval& Target, const SInterval& R
 CEffect::CEffect(const CStateDefinition& Def)
     : mDefinition(Def) 
 {
-    Expand(Def.GetFactCount());
+    Expand(Def.GetFactAmount());
 }
 
 void CEffect::Expand(int Size)
@@ -176,6 +176,22 @@ bool CEffect::IsNil() const
     }
 
     return true;
+}
+
+int CEffect::GetTransformCount() const
+{
+    int Count = 0;
+
+    for (int i = 0; i < mTransforms.size(); i++)
+    {
+        const CTransform& Transform = mTransforms[i];
+        if (Transform.GetOperator() != EOperator::nil)
+        {
+            Count++;
+        }
+    }
+
+    return Count;
 }
 
 const CTransform& CEffect::GetTransform(const CFact& Fact) const

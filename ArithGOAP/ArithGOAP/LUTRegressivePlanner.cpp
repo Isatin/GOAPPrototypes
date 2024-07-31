@@ -34,8 +34,8 @@ bool CLUTRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CSta
 
     SNode& RootNode = Nodes.emplace_back();
     RootNode.ConstState = &GoalState;
-    RootNode.BasicHeuristicCost = GoalState.GetBasicHeuristicCost(StartingState);
-    RootNode.ExtraHeuristicCost = GoalState.GetExtraHeuristicCost(StartingState);
+    RootNode.BasicHeuristicCost = StartingState.GetBasicHeuristicCost(GoalState);
+    RootNode.ExtraHeuristicCost = StartingState.GetExtraHeuristicCost(GoalState);
 
     std::multimap<float, int> OpenMap; // a.k.a open set in A*
     OpenMap.emplace(RootNode.GetTotalCost(), 0);
@@ -83,10 +83,10 @@ void CLUTRegressivePlanner::BuildEffectMaps(CEffectActionMap& oEffectActionMap, 
         return;
     }
 
-    const int FactCount = Actions.front()->GetDefinition().GetFactCount();
-    oEffectActionMap.reserve(FactCount);
-    oEffectValueMap.reserve(FactCount);
-    oEffectDirectionMap.reserve(FactCount);
+    const int FactAmount = Actions.front()->GetDefinition().GetFactAmount();
+    oEffectActionMap.reserve(FactAmount);
+    oEffectValueMap.reserve(FactAmount);
+    oEffectDirectionMap.reserve(FactAmount);
 
     for (const CAction* Action : Actions)
     {

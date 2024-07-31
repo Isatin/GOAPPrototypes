@@ -28,10 +28,10 @@ namespace ArithGOAP
         operator PValue() const { return Value; }
 
         bool operator == (const SNumber& Another) const { return *this == Another.Value; }
-        template <typename T>
+        template <typename T> requires std::is_arithmetic<T>::value
         bool operator == (T Another) const;
         std::partial_ordering operator <=> (const SNumber& Another) const { return *this <=> Another.Value; }
-        template <typename T>
+        template <typename T> requires std::is_arithmetic<T>::value
         std::partial_ordering operator <=> (T Another) const;
 
         SNumber& operator += (const SNumber& Another) { Value += Another.Value; return *this; }
@@ -48,19 +48,16 @@ namespace ArithGOAP
         bool IsEquivalent(const SNumber& Another, PValue Tolerance = std::numeric_limits<PValue>::epsilon()) const;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename T>
+    template <typename T> requires std::is_arithmetic<T>::value
     bool SNumber::operator == (T Another) const
     {
-        static_assert(std::is_arithmetic_v<T>);
         // Using IsEquivalent makes Infinity unequal to each other, which allows the trick in SInterval::IsEmpty for [inf, inf] to be empty.
         return IsEquivalent(static_cast<PValue>(Another));
     }
 
-    template <typename T>
+    template <typename T> requires std::is_arithmetic<T>::value
     std::partial_ordering SNumber::operator <=> (T Another) const
     {
-        static_assert(std::is_arithmetic_v<T>);
-
         if (*this == Another)
         {
             return std::partial_ordering::equivalent;

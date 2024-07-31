@@ -12,7 +12,7 @@ using namespace GOAP;
 std::string SNode::ToString() const
 {
     std::stringstream Stream;
-    Stream << "{Cost=" << GetTotalCost() << "=(" << CurrentCost << "+" << PreviousCost << ")+";
+    Stream << "{Cost=" << GetTotalCost() << "=(" << PreviousCost << "+" << CurrentCost << ")+";
 
     if (ExtraHeuristicCost == 0.f)
     {

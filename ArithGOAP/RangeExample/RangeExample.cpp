@@ -1,12 +1,10 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows that range limits of world properties could sometimes be useful.
-// The three GOAP algorithms run twice: 
-// The first run is without range limits and the second run is with range limits.
-// 
-// You can see that in the first run Fatigue is negative in some iterations.
-// Suppose that Fatigue shouldn't be negative in the simulation, then the resulting plans are wrong as well.
-// To fix that, we can put range limits on the facts and they'll result in correct plans in the second run.
+// This example shows that range limits of world properties could sometimes be useful. 
+// The GOAP algorithms first run without range limits and then run with range limits. 
+// You can see that in the first run the fact of Fatigue is negative in some iterations.
+// Suppose that Fatigue shouldn't be negative in the simulation, then the resulting plans are wrong. 
+// To fix that, we can put range limits on the facts and they'll result in correct plans.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -40,10 +38,10 @@ int main()
         Rest.SetEffect(FatigueFact -= 3);
     }
 
-    // GOAP without ranges
+    // GOAP without range limits of facts
     RunGOAPs(StartingState, GoalState, Actions, 5);
     
-    // GOAP with ranges
+    // GOAP with range limits of facts
     MoneyFact.SetRange(SInterval(0, SNumber::Infinity));
     FatigueFact.SetRange(SInterval(0, SNumber::Infinity));
     RunGOAPs(StartingState, GoalState, Actions, 5);

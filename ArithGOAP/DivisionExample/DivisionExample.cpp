@@ -1,6 +1,6 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is two test cases of division.
+// This example shows a case with positive divisors and another with positive and negative divisors.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -36,10 +36,14 @@ int main()
     RunGOAPs(StartingState, GoalState, Actions);
 
     {
+        CAction& NegHalf = Actions.emplace_back("/-2", Definition);
+        NegHalf.SetEffect(NumberFact /= -2);
+    }
+    {
         CAction& NegQuarter = Actions.emplace_back("/-4", Definition);
         NegQuarter.SetEffect(NumberFact /= -4);
     }
-    GoalState.SetFact(NumberFact <= -10);
+    GoalState.SetFact(NumberFact <= -20);
     RunGOAPs(StartingState, GoalState, Actions);
 
     return 0;

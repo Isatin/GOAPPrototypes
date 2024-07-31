@@ -1,6 +1,7 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is two test cases of ineffective actions and they will fail.
+// This example is two test cases with ineffective/unsatisfying actions and they will fail.
+// Regressive GOAP with lookup tables will rule out these actions during search.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -21,8 +22,8 @@ int main()
 
     std::vector<CAction> Actions;
     {
-        CAction& PlusZero = Actions.emplace_back("+0", Definition);
-        PlusZero.SetEffect(NumberFact += 0);
+        CAction& AddZero = Actions.emplace_back("+0", Definition);
+        AddZero.SetEffect(NumberFact += 0);
     }
     {
         CAction& TimesOne = Actions.emplace_back("*1", Definition);

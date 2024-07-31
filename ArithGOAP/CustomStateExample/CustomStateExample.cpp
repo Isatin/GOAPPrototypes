@@ -1,11 +1,7 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // This example is a numeric version of the namesake in GOAP VS solution.
-// You may reference the namesake for the original information.
-// 
-// Besides, this example shows that A* may not find the best solution if the heuristic function is 
-// not admissible (see the results of regressive planners in the first run). 
-// However, we can scale down the heuristic cost to avoid that (see second run).
+// You may reference the namesake for the more information.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iomanip>
@@ -86,7 +82,7 @@ protected:
         }
     }
 
-    float GetCost(const CState& CurrentState, const CState& NextState) const override
+    float GetCustomCost(const CState& CurrentState, const CState& NextState) const override
     {
         const CStateWithPosition* CurrentPosState = dynamic_cast<const CStateWithPosition*>(&CurrentState);
         if (!CurrentPosState)
@@ -138,6 +134,7 @@ int main()
     {
         CActionWithPosition& Action = GetAmmoActions[i];
         Action.SetName(Action.GetName() + static_cast<char>('1' + i));
+        Action.SetPrecondition(AmmoFact == 0);
         Action.SetEffect(AmmoFact += 10);
         Action.SetPosition(AmmoPositions[i]);
         Actions.push_back(&Action);
@@ -149,6 +146,7 @@ int main()
     {
         CActionWithPosition& Action = GetGunActions[i];
         Action.SetName(Action.GetName() + static_cast<char>('1' + i));
+        Action.SetPrecondition(GunFact == 0);
         Action.SetEffect(GunFact += 1);
         Action.SetPosition(GunPositions[i]);
         Actions.push_back(&Action);
@@ -161,10 +159,5 @@ int main()
     Actions.push_back(&Reload);
 
     RunGOAPs(StartingState, GoalState, Actions);
-
-    AmmoFact.SetDistanceWeight(0.01);
-    GunFact.SetDistanceWeight(0.1);
-    RunGOAPs(StartingState, GoalState, Actions);
-
     return 0;
 }

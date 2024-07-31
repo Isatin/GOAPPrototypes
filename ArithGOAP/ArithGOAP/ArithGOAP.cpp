@@ -21,7 +21,7 @@ namespace ArithGOAP
 
         std::unordered_set<int> UsedFactIndices;
 
-        for (int i = 0; i < GoalState.GetFactCount(); i++)
+        for (int i = 0; i < GoalState.GetFactAmount(); i++)
         {
             if (GoalState.GetFact(i))
             {
@@ -37,7 +37,7 @@ namespace ArithGOAP
             }
 
             const auto& Precondition = Action->GetPrecondition();
-            for (int i = 0; i < Precondition.GetFactCount(); i++)
+            for (int i = 0; i < Precondition.GetFactAmount(); i++)
             {
                 if (Precondition.GetFact(i))
                 {
@@ -46,7 +46,7 @@ namespace ArithGOAP
             }
 
             const auto& Effect = Action->GetEffect();
-            for (int i = 0; i < Effect.GetTransformCount(); i++)
+            for (int i = 0; i < Effect.GetTransformAmount(); i++)
             {
                 if (Effect.GetTransform(i))
                 {

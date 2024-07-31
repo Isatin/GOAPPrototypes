@@ -34,7 +34,8 @@ namespace ArithGOAP
         float GetBasicHeuristicCost(const CState& Another) const; // Heuristic cost based on fact differences
         const CStateDefinition& GetDefinition() const { return mDefinition; }
 
-        int GetFactCount() const { return (int) mValues.size(); }
+        int GetFactAmount() const { return (int) mValues.size(); } // Number of all facts including unset facts
+        int GetFactCount() const; // Number of set facts
         const std::vector<SInterval>& GetFacts() const { return mValues; }
         SInterval& GetFact(const CFact& Fact);
         const SInterval& GetFact(const CFact& Fact) const;

@@ -63,7 +63,7 @@ std::optional<std::vector<SInterval>> CAction::CheckPostcondition(const CState& 
     auto Results = State.GetFacts(); // Copy facts for later modification
     bool AnySatisfaction = false;
 
-    for (int i = 0; i < mEffect.GetTransformCount(); i++)
+    for (int i = 0; i < mEffect.GetTransformAmount(); i++)
     {
         const CTransform& Transform = mEffect.GetTransform(i);
         if (!Transform)
@@ -99,7 +99,7 @@ std::optional<std::vector<SInterval>> CAction::CheckPostcondition(const CState& 
         return std::nullopt; // None of the effects can satisfy any desired facts.
     }
 
-    for (int i = 0; i < mPrecondition.GetFactCount(); i++)
+    for (int i = 0; i < mPrecondition.GetFactAmount(); i++)
     {
         const SInterval& Constraint = mPrecondition.GetFact(i);
         if (!Constraint)

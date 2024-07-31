@@ -27,12 +27,12 @@ namespace ArithGOAP
 
             int Parent = -1;                // Index of parent node
             int Depth = 0;                  // Depth of this node in search tree
-            float CurrentCost = 0.f;        // Cost of current action
             float PreviousCost = 0.f;       // Cost of previous actions
+            float CurrentCost = 0.f;        // Cost of current action
             float BasicHeuristicCost = 0.f; // Heuristic cost based on facts of current and goal state
             float ExtraHeuristicCost = 0.f; // Custom heuristic cost
 
-            float GetActualCost() const { return CurrentCost + PreviousCost; }
+            float GetActualCost() const { return PreviousCost + CurrentCost; }
             float GetHeuristicCost() const { return BasicHeuristicCost + ExtraHeuristicCost; }
             float GetTotalCost() const { return GetActualCost() + GetHeuristicCost(); }
 

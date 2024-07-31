@@ -32,17 +32,6 @@ namespace ArithGOAP
         Type mValue = none;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    template <typename TKey, typename TValue> // Hash functor for std::pair
-    struct PairHasher
-    {
-        size_t operator() (const std::pair<TKey, TValue>& Pair) const
-        {
-            size_t Hash1 = std::hash<TKey>{}(Pair.first);
-            size_t Hash2 = std::hash<TValue>{}(Pair.second);
-            return Hash1 ^ (Hash2 + 0x9e3779b9 + (Hash1 << 6) + (Hash1 >> 2)); // From boost::hash_combine
-        }
-    };
-    ///////////////////////////////////////////////////////////////////////////////////////////////
     class CLUTRegressivePlanner : public CRegressivePlanner // Regressive GOAP with effect lookup tables
     {
         using CEffectActionMap = std::unordered_multimap<int, const CAction*>;

@@ -1,9 +1,7 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // This example is from Orkin's "Applying Goal-Oriented Action Planning to Games" but simplified. 
-// It shows that GOAP can not only support Boolean but also enumerations.
-// Besides, the action of activating generator is replaced by another action of toggling generator  
-// using Boolean negation.
+// The action of activating generator is replaced with toggling generator using Boolean negation.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -36,7 +34,7 @@ protected:
             {
                 if (const SInterval& CurrentPlace = State.GetFact(*AtFact))
                 {
-                    if (CurrentPlace.Contain(MyTransform.GetOperand())) // Disallow the same start and destination
+                    if (CurrentPlace.Contain(MyTransform.GetOperand())) // Disallow actions from and to the same place
                     {
                         return false;
                     }

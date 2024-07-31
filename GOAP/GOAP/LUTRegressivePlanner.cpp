@@ -41,7 +41,7 @@ bool CLUTRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CSta
     SNode& RootNode = Nodes.emplace_back();
     RootNode.ConstState = &GoalState;
     RootNode.BasicHeuristicCost = (float) GoalState.GetUnsatisfactionCount(StartingState);
-    RootNode.ExtraHeuristicCost = GoalState.GetExtraHeuristicCost(StartingState);
+    RootNode.ExtraHeuristicCost = StartingState.GetExtraHeuristicCost(GoalState);
 
     std::multimap<float, int> OpenMap; // a.k.a open set in A*
     OpenMap.emplace(RootNode.GetTotalCost(), 0);

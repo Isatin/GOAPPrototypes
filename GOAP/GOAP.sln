@@ -34,7 +34,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UnfeasibleDesiredFactExampl
 		{F271EB8B-B64D-4447-90CF-E5C8DFF17A6A} = {F271EB8B-B64D-4447-90CF-E5C8DFF17A6A}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NonAdmissibleHeuristicExample", "NonAdmissibleHeuristicExample\NonAdmissibleHeuristicExample.vcxproj", "{F7B039D9-B274-469E-A76A-75AB93C97931}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AdmissibleHeuristicExample", "AdmissibleHeuristicExample\AdmissibleHeuristicExample.vcxproj", "{F7B039D9-B274-469E-A76A-75AB93C97931}"
 	ProjectSection(ProjectDependencies) = postProject
 		{3997CE4F-E287-4604-A007-A3117752ECD3} = {3997CE4F-E287-4604-A007-A3117752ECD3}
 		{F271EB8B-B64D-4447-90CF-E5C8DFF17A6A} = {F271EB8B-B64D-4447-90CF-E5C8DFF17A6A}

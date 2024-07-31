@@ -11,7 +11,7 @@ using namespace ArithGOAP;
 int main()
 {
     CStateDefinition Definition;
-    const auto& NumberFact = *Definition.DefineNumber("Number", 0.01);
+    const auto& NumberFact = *Definition.DefineNumber("Number");
     const auto& AdditionCountFact = *Definition.DefineNumber("AddCount");
     const auto& SubtractCountFact = *Definition.DefineNumber("SubCount");
     const auto& MultiplicationCountFact = *Definition.DefineNumber("MulCount");
