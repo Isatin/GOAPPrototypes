@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <map>
-#include <sstream>
+#include <typeinfo>
 
 #include "Action.h"
 #include "Fact.h"
@@ -11,56 +11,42 @@
 
 using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-std::string CForwardPlanner::SNode::ToString() const
-{
-    std::stringstream Stream;
-    Stream << "{Cost=" << GetTotalCost() << "=(" << PreviousCost << "+" << CurrentCost << ")+";
-
-    if (ExtraHeuristicCost == 0.f)
-    {
-        Stream << BasicHeuristicCost;
-    }
-    else
-    {
-        Stream << "(" << BasicHeuristicCost << "+" << ExtraHeuristicCost << ")";
-    }
-
-    Stream << " Depth=" << Depth << " {" << (ConstState ? ConstState->ToString() : "") << "}}";
-    return Stream.str();
-}
-///////////////////////////////////////////////////////////////////////////////////////////////////
 bool CForwardPlanner::Plan(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
 {
-    std::cout << __FUNCTION__ << std::endl;
-    std::cout << "RANGE {" << StartingState.GetDefinition().StringizeBoundedRanges() << "}" << std::endl;
-    std::cout << "START {" << StartingState.ToString() << "}" << std::endl;
-    std::cout << "GOAL  {" << GoalState.ToString() << "}" << std::endl;
+    std::cout << typeid(*this).name() << std::endl;
+    if (StartingState.GetDefinition().HasAnyRange())
+    {
+        std::cout << "RANGE: {" << StartingState.GetDefinition().StringizeBoundedRanges() << "}" << std::endl;
+    }
+    std::cout << "START: {" << StartingState.ToString() << "}" << std::endl;
+    std::cout << "GOAL : {" << GoalState.ToString() << "}" << std::endl;
 
     int Step = 0;
     oSteps.clear();
+    MaxDepth = std::max(MaxDepth, 0);
 
     std::vector<SNode> Nodes;
     Nodes.reserve(Actions.size() * MaxDepth);
 
     SNode& RootNode = Nodes.emplace_back();
     RootNode.ConstState = &StartingState;
-    RootNode.BasicHeuristicCost = StartingState.GetBasicHeuristicCost(GoalState);
+    RootNode.BaseHeuristicCost = StartingState.GetBaseHeuristicCost(GoalState);
     RootNode.ExtraHeuristicCost = StartingState.GetExtraHeuristicCost(GoalState);
 
-    std::multimap<float, int> OpenMap; // a.k.a open set in A*
+    std::multimap<float, int> OpenMap; // The open set in A*
     OpenMap.emplace(RootNode.GetTotalCost(), 0);
 
     while (!OpenMap.empty())
     {
         auto itCurr = OpenMap.begin();
-        const int CurrIdx = itCurr->second;
-        SNode& CurrNode = Nodes[CurrIdx];
+        const int CurrIndex = itCurr->second;
+        SNode& CurrNode = Nodes[CurrIndex];
 
-        std::cout << "#" << ++Step << " #Nodes=" << Nodes.size() << " |" << GetPathName(Nodes, CurrIdx) << "| " << CurrNode.ToString() << std::endl;
+        std::cout << "#" << ++Step << " #Nodes=" << Nodes.size() << " |" << StringizePath(Nodes, CurrIndex) << "| " << CurrNode.ToString() << std::endl;
 
-        if (GoalState.HasIntersection(*CurrNode.ConstState))
+        if (!GoalState.IsContradictory(*CurrNode.ConstState))
         {
-            BuildPlan(oSteps, Nodes, CurrIdx);
+            BuildPlan(oSteps, Nodes, CurrIndex);
             return true;
         }
 
@@ -73,7 +59,7 @@ bool CForwardPlanner::Plan(std::vector<const CAction*>& oSteps, const CState& St
 
         for (const CAction* Action : Actions)
         {
-            Explore(OpenMap, Nodes, CurrIdx, *Action, GoalState);
+            Explore(OpenMap, Nodes, CurrIndex, *Action, GoalState);
         }
     }
 
@@ -87,7 +73,7 @@ void CForwardPlanner::Explore(std::multimap<float, int>& oOpenMap, std::vector<S
         return;
     }
 
-    int ChildIdx = (int) Nodes.size();
+    int ChildIndex = static_cast<int>(Nodes.size());
     SNode& ChildNode = Nodes.emplace_back();
     SNode& CurrNode = Nodes[NodeIndex];
     ChildNode.Action = &Action;
@@ -99,10 +85,10 @@ void CForwardPlanner::Explore(std::multimap<float, int>& oOpenMap, std::vector<S
     ChildNode.Depth = CurrNode.Depth + 1;
     ChildNode.PreviousCost = CurrNode.GetActualCost();
     ChildNode.CurrentCost = Action.GetCost(*CurrNode.ConstState, *ChildNode.ConstState);
-    ChildNode.BasicHeuristicCost = ChildNode.ConstState->GetBasicHeuristicCost(GoalState);
+    ChildNode.BaseHeuristicCost = ChildNode.ConstState->GetBaseHeuristicCost(GoalState);
     ChildNode.ExtraHeuristicCost = ChildNode.ConstState->GetExtraHeuristicCost(GoalState);
     float TotalCost = ChildNode.GetTotalCost();
-    oOpenMap.emplace(TotalCost, ChildIdx);
+    oOpenMap.emplace(TotalCost, ChildIndex);
 }
 
 void CForwardPlanner::BuildPlan(std::vector<const CAction*>& oSteps, const std::vector<SNode>& Nodes, int NodeIndex)
@@ -116,9 +102,11 @@ void CForwardPlanner::BuildPlan(std::vector<const CAction*>& oSteps, const std::
 
         NodeIndex = Nodes[NodeIndex].Parent;
     }
+
+    std::reverse(oSteps.begin(), oSteps.end());
 }
 
-std::string CForwardPlanner::GetPathName(const std::vector<SNode>& Nodes, int NodeIndex)
+std::string CForwardPlanner::StringizePath(const std::vector<SNode>& Nodes, int NodeIndex) const
 {
     std::vector<std::string> ActionNames;
     while (NodeIndex >= 0)
@@ -131,22 +119,22 @@ std::string CForwardPlanner::GetPathName(const std::vector<SNode>& Nodes, int No
         NodeIndex = Nodes[NodeIndex].Parent;
     }
 
-    std::stringstream Stream;
-    bool First = true;
+    std::string Path;
+    bool Successive = false;
     for (auto it = ActionNames.rbegin(); it != ActionNames.rend(); it++)
     {
-        if (First)
+        if (Successive)
         {
-            First = false;
+            Path += ' ';
         }
         else
         {
-            Stream << " ";
+            Successive = true;
         }
 
-        Stream << *it;
+        Path += *it;
     }
 
-    return Stream.str();
+    return Path;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

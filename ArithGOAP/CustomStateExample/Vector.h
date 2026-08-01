@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <string>
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct SVector // 2D vector
@@ -12,21 +14,22 @@ struct SVector // 2D vector
         {
             float X, Y;
         };
-        float elements[2];
+        float Elements[2];
     };
 
+public:
     SVector() = default;
     SVector(float iX, float iY) : X(iX), Y(iY) {}
     SVector(float Value) : X(Value), Y(Value) {}
 
-    float& operator() (int i)  { return elements[i]; }
-    float operator() (int i) const  { return elements[i]; }
+    float& operator() (int i)  { return Elements[i]; }
+    float operator() (int i) const  { return Elements[i]; }
 
     SVector operator + (const SVector& Another) const;
     SVector operator - (const SVector& Another) const;
 
     bool IsValid() const;
-
+    std::string ToString() const;
     float Length() const;
     float SquaredLength() const;
 
@@ -35,7 +38,7 @@ struct SVector // 2D vector
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 inline float SVector::SquaredLength() const
 {
-    return elements[0] * elements[0] + elements[1] * elements[1];
+    return Elements[0] * Elements[0] + Elements[1] * Elements[1];
 }
 
 inline SVector SVector::operator + (const SVector& Another) const

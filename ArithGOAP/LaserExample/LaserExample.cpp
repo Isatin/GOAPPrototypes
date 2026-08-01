@@ -1,7 +1,7 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is from Orkin's "Applying Goal-Oriented Action Planning to Games" but simplified. 
-// The action of activating generator is replaced with toggling generator using Boolean negation.
+// This example is from Dr. Orkin's "Applying Goal-Oriented Action Planning to Games", but simplified. 
+// The action of activating the generator is replaced with toggling the generator using Boolean negation.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -30,11 +30,13 @@ protected:
     {
         if (const CFact* AtFact = GetDefinition().GetFact("At"))
         {
-            if (const CTransform& MyTransform = GetEffect().GetTransform(*AtFact))
+            const CTransform& Transform = GetEffect().GetTransform(*AtFact);
+            if (!Transform.IsNil())
             {
-                if (const SInterval& CurrentPlace = State.GetFact(*AtFact))
+                const SSegment& CurrPlace = State.GetProperty(*AtFact);
+                if (CurrPlace.IsSet())
                 {
-                    if (CurrentPlace.Contain(MyTransform.GetOperand())) // Disallow actions from and to the same place
+                    if (CurrPlace.Contain(Transform.GetOperand(), State.GetDefinition().GetTolerance())) // Disallow actions that go from and to the same place.
                     {
                         return false;
                     }
@@ -48,39 +50,39 @@ protected:
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
-    auto& TargetHurtFact    = *Definition.DefineBoolean("TargetHurt");
-    auto& AtFact            = *Definition.DefineEnumeration("At");
-    auto& SwitchFact        = *Definition.DefineBoolean("Switch");
+    CFactDefinition Definition;
+    auto& TargetHurt    = *Definition.DefineBoolean("TargetHurt");
+    auto& At            = *Definition.DefineEnumeration("At");
+    auto& Switch        = *Definition.DefineBoolean("Switch");
 
     CState StartingState(Definition);
-    StartingState.SetFact(TargetHurtFact == false);
-    StartingState.SetFact(AtFact == EPlace::other);
-    StartingState.SetFact(SwitchFact == false);
+    StartingState.SetProperty(TargetHurt == false);
+    StartingState.SetProperty(At == EPlace::other);
+    StartingState.SetProperty(Switch == false);
 
     CState GoalState(Definition);
-    GoalState.SetFact(TargetHurtFact == true);
+    GoalState.SetProperty(TargetHurt == true);
 
     std::vector<const CAction*> Actions;
 
     CGotoAction GotoLaser("GL", Definition);
     Actions.push_back(&GotoLaser);
-    GotoLaser.SetEffect(AtFact = EPlace::laser);
+    GotoLaser.SetEffect(At = EPlace::laser);
 
     CGotoAction GotoGenerator("GG", Definition);
     Actions.push_back(&GotoGenerator);
-    GotoGenerator.SetEffect(AtFact = EPlace::generator);
+    GotoGenerator.SetEffect(At = EPlace::generator);
 
     CAction ToggleGenerator("TG", Definition);
     Actions.push_back(&ToggleGenerator);
-    ToggleGenerator.SetPrecondition(AtFact == EPlace::generator);
-    ToggleGenerator.SetEffect(!SwitchFact);    
+    ToggleGenerator.SetPrecondition(At == EPlace::generator);
+    ToggleGenerator.SetEffect(!Switch);    
  
     CAction FireLaser("FL", Definition);
     Actions.push_back(&FireLaser);
-    FireLaser.SetPrecondition(AtFact == EPlace::laser);
-    FireLaser.SetPrecondition(SwitchFact == true);
-    FireLaser.SetEffect(TargetHurtFact = true);
+    FireLaser.SetPrecondition(At == EPlace::laser);
+    FireLaser.SetPrecondition(Switch == true);
+    FireLaser.SetEffect(TargetHurt = true);
 
     RunGOAPs(StartingState, GoalState, Actions);
     return 0;

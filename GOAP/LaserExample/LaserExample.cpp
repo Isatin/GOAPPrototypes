@@ -1,9 +1,9 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is from Orkin's "Applying Goal-Oriented Action Planning to Games" but simplified.
-// It shows that GOAP can not only support Boolean but also enumerations.
-// Also, it demonstrates that the improved regressive GOAP can deal with actions of inconsistent 
-// preconditions and effects (see the Switch settings of ActivateGenerator). 
+// This example is from Dr. Orkin's "Applying Goal-Oriented Action Planning to Games", but simplified.
+// It demonstrates that the improved regressive GOAP can handle actions with inconsistent 
+// preconditions and effects (see the Switch settings of the ActivateGenerator action), 
+// while the original regressive GOAP (see the result of CBackwardPlanner) cannot. 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -32,11 +32,11 @@ public:
 protected:
     bool CheckPrecondition(const CState& State) const override
     {
-        if (std::optional<PFact> MyPlace = GetEffect().GetFact("At"))
+        if (std::optional<BProperty> NewPlace = GetEffect().GetProperty("At"))
         {
-            if (std::optional<PFact> CurrentPlace = State.GetFact("At"))
+            if (std::optional<BProperty> CurrPlace = State.GetProperty("At"))
             {
-                if (MyPlace == CurrentPlace) // Disallow actions from and to the same place
+                if (NewPlace == CurrPlace) // Disallow actions that go from and to the same place.
                 {
                     return false;
                 }
@@ -50,12 +50,12 @@ protected:
 int main()
 {
     CState StartingState;
-    StartingState.SetFact("TargetHurt", false);
-    StartingState.SetFact("At", EPlace::other);
-    StartingState.SetFact("Switch", false);
+    StartingState.SetProperty("TargetHurt", false);
+    StartingState.SetProperty("At", EPlace::other);
+    StartingState.SetProperty("Switch", false);
 
     CState GoalState;
-    GoalState.SetFact("TargetHurt", true);
+    GoalState.SetProperty("TargetHurt", true);
 
     std::vector<const CAction*> Actions;
 
@@ -69,7 +69,7 @@ int main()
 
     CAction ActivateGenerator("AG");
     ActivateGenerator.SetPrecondition("At", EPlace::generator);
-    ActivateGenerator.SetPrecondition("Switch", false);
+    ActivateGenerator.SetPrecondition("Switch", false); // This line makes the backward GOAP not work.
     ActivateGenerator.SetEffect("Switch", true);
     Actions.push_back(&ActivateGenerator);
 
@@ -79,6 +79,6 @@ int main()
     FireLaser.SetEffect("TargetHurt", true);
     Actions.push_back(&FireLaser);
 
-    RunGOAPs(StartingState, GoalState, Actions);
+    RunGOAPs(StartingState, GoalState, Actions, 0, DefaultGOAPs | BackwardGOAP);
     return 0;
 }

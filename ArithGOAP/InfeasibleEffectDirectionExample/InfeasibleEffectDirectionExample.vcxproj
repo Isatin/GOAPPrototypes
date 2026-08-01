@@ -19,12 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="FruitlessEffectExample.cpp" />
+    <ClCompile Include="InfeasibleEffectDirectionExample.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{970D4386-3D3D-4E1B-970C-EFD16B888EB4}</ProjectGuid>
+    <ProjectGuid>{f39c6386-f238-41bd-9768-50149521d18a}</ProjectGuid>
     <RootNamespace>EarnExample</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>

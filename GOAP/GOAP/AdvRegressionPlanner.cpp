@@ -2,25 +2,25 @@
 
 #include <iostream>
 #include <map>
-#include <sstream>
-#include <unordered_map>
+#include <typeinfo>
 #include <unordered_set>
 
 #include "Action.h"
-#include "LUTRegressivePlanner.h"
+#include "AdvRegressionPlanner.h"
+#include "Hash.h"
 #include "Node.h"
 
 
 using namespace GOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool CLUTRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
+bool CAdvRegressionPlanner::Plan(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
 {
-    std::cout << __FUNCTION__ << std::endl;
-    std::cout << "START {" << StartingState.ToString() << "}" << std::endl;
-    std::cout << "GOAL  {" << GoalState.ToString() << "}" << std::endl;
+    std::cout << typeid(*this).name() << std::endl;
+    std::cout << "START: {" << StartingState.ToString() << "}" << std::endl;
+    std::cout << "GOAL : {" << GoalState.ToString() << "}" << std::endl;
 
-    using FactPair = std::pair<std::string, PFact>;
-    std::unordered_multimap<FactPair, const CAction*, PairHasher<std::string, PFact>> EffectMap;
+    using FactPair = std::pair<std::string, BProperty>;
+    std::unordered_multimap<FactPair, const CAction*> EffectMap;
     for (const CAction* Action : Actions)
     {
         for (const auto& Pair : Action->GetEffect())
@@ -34,29 +34,32 @@ bool CLUTRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CSta
 
     int Step = 0;
     oSteps.clear();
+    MaxDepth = std::max(MaxDepth, 0);
 
     std::vector<SNode> Nodes;
     Nodes.reserve(Actions.size() * MaxDepth);
 
     SNode& RootNode = Nodes.emplace_back();
     RootNode.ConstState = &GoalState;
-    RootNode.BasicHeuristicCost = (float) GoalState.GetUnsatisfactionCount(StartingState);
+    RootNode.BaseHeuristicCost = static_cast<float>(GoalState.CountUnsatisfiedProperties(StartingState));
     RootNode.ExtraHeuristicCost = StartingState.GetExtraHeuristicCost(GoalState);
 
-    std::multimap<float, int> OpenMap; // a.k.a open set in A*
+    std::multimap<float, int> OpenMap; // The open set in A*
     OpenMap.emplace(RootNode.GetTotalCost(), 0);
 
     while (!OpenMap.empty())
     {
         auto itCurr = OpenMap.begin();
-        const int CurrIdx = itCurr->second;
-        SNode& CurrNode = Nodes[CurrIdx];
+        const int CurrIndex = itCurr->second;
+        SNode& CurrNode = Nodes[CurrIndex];
 
         bool Reached = CurrNode.ConstState->IsSatisfiedBy(StartingState);
-        std::cout << "#" << ++Step << " #Nodes=" << Nodes.size() << " |" << ((Reached || CurrIdx == 0) ? "" : "? ") << GetPathName(Nodes, CurrIdx) << "| " << CurrNode.ToString() << std::endl;
+        std::cout << "#" << ++Step << " #Nodes=" << Nodes.size();
+        std::cout << " |" << ((Reached || CurrIndex == 0) ? "" : "? ") << StringizePath(Nodes, CurrIndex) << "| ";
+        std::cout << CurrNode.ToString() << std::endl;
         if (Reached)
         {
-            BuildPlan(oSteps, Nodes, CurrIdx);
+            BuildPlan(oSteps, Nodes, CurrIndex);
             return true;
         }
 
@@ -72,12 +75,12 @@ bool CLUTRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CSta
         for (const auto& DesiredFact : *CurrNode.ConstState)
         {            
             auto Range = EffectMap.equal_range(DesiredFact);
-            if (Range.first == Range.second) // No matched effects
+            if (Range.first == Range.second) // Check if no effects match the desired property.
             {
-                std::optional<PFact> StartingValue = StartingState.GetFact(DesiredFact.first);
+                std::optional<BProperty> StartingValue = StartingState.GetProperty(DesiredFact.first);
                 if (StartingValue != DesiredFact.second)
                 {
-                    Unsatisfiable = true; // It's impossible to satisfy this fact because neither effects nor the starting value matches it.
+                    Unsatisfiable = true; // It's impossible to satisfy the desired property because neither the starting value nor the effects match it.
                     break;
                 }
             }
@@ -95,7 +98,7 @@ bool CLUTRegressivePlanner::Plan(std::vector<const CAction*>& oSteps, const CSta
 
         for (const CAction* Action : FeasibleActions)
         {
-            Explore(OpenMap, Nodes, CurrIdx, *Action, StartingState);
+            Explore(OpenMap, Nodes, CurrIndex, *Action, StartingState);
         }
     }
 

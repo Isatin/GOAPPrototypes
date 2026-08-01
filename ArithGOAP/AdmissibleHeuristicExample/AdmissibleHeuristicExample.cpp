@@ -1,10 +1,9 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows a test case with admissible heuristic and non-admissible one.
-// There are four actions with one arithmetic operation and one action with two operations.
-// The shortest solution is to apply the two-op action three times instead of the others four times.
-// However, the non-admissible heuristic will miss the shortest solution while the admissible one  
-// will find it.
+// This example shows a test case with an inadmissible heuristic and another with an admissible one.
+// There are four actions with one arithmetic operation and an action with two operations.
+// The simplest solution is to apply the two-op action three times.
+// The inadmissible heuristic misses it, while the admissible one finds the shortest path.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -13,30 +12,29 @@
 
 
 using namespace ArithGOAP;
-using VAR = ArithGOAP::SVariable;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
+    CFactDefinition Definition;
     auto& X = *Definition.DefineNumber("X");
     auto& Y = *Definition.DefineNumber("Y");
 
     CState StartingState(Definition);
-    StartingState.SetFact(X, 1);
-    StartingState.SetFact(Y, 1);
+    StartingState.SetProperty(X, 1);
+    StartingState.SetProperty(Y, 1);
 
     CState GoalState(Definition);
-    GoalState.SetFact(X >= 10);
-    GoalState.SetFact(Y >= 100);
+    GoalState.SetProperty(X >= 10);
+    GoalState.SetProperty(Y >= 100);
 
     std::vector<CAction> Actions;
     {
-        CAction& AddTwo = Actions.emplace_back("X+2", Definition);
-        AddTwo.SetEffect(X += 2);
+        CAction& PlusTwo = Actions.emplace_back("X+2", Definition);
+        PlusTwo.SetEffect(X += 2);
     }
     {
-        CAction& AddFive = Actions.emplace_back("X+5", Definition);
-        AddFive.SetEffect(X += 5);
+        CAction& PlusFive = Actions.emplace_back("X+5", Definition);
+        PlusFive.SetEffect(X += 5);
     }
     {
         CAction& Double = Actions.emplace_back("Y*2", Definition);
@@ -53,18 +51,19 @@ int main()
     }
 
     {
-        std::cout << "    NON-ADMISSIBLE HEURISTIC\n";
+        std::cout << "    INADMISSIBLE HEURISTIC\n";
         RunGOAPs(StartingState, GoalState, Actions);
     }
 
     {
         std::cout << "    ADMISSIBLE HEURISTIC\n";
-        X.SetDistanceWeight(0.01);
-        Y.SetDistanceWeight(0.01);
+        X.SetGapWeight(0.01);
+        Y.SetGapWeight(0.01);
 
+        const float BaseCost = static_cast<float>(StartingState.CountProperties() * Definition.GetBaseRelationCost());
         for (CAction& Action : Actions)
         {
-            Action.SetBaseCost((float) StartingState.GetFactCount());
+            Action.SetBaseCost(BaseCost);
         }
 
         RunGOAPs(StartingState, GoalState, Actions);

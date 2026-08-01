@@ -1,92 +1,92 @@
 // Copyright 2024 Isaac Hsu
 
 #include <cassert>
-#include <sstream>
 
 #include "Action.h"
 #include "Fact.h"
-#include "Notation.h"
 
 
 using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CAction::CAction(const std::string& Name, const CStateDefinition& Def)
+CAction::CAction(const std::string& Name, const CFactDefinition& Definition)
     : mName(Name)
-    , mPrecondition(Def)
-    , mEffect(Def)
-{
-}
+    , mPrecondition(Definition)
+    , mEffect(Definition)
+{}
 
 std::string CAction::ToString() const
 {
-    std::stringstream Stream;
-    Stream << mName << "{ ";
+    std::string Return = mName;
+    Return += "{ ";
 
-    std::string PreconditionStr = mPrecondition.ToString();
-    if (!PreconditionStr.empty())
+    if (!mPrecondition.IsEmpty())
     {
-        Stream << PreconditionStr << " ";
+        Return += mPrecondition.ToString();
+        Return += ' ';
     }
 
-    Stream << "=>";
+    Return += "->";
 
-    std::string EffectStr = mEffect.ToString();
-    if (!EffectStr.empty())
+    std::string EffectText = mEffect.ToString();
+    if (!EffectText.empty())
     {
-        Stream << " " << EffectStr;
+        Return += ' ';
+        Return += EffectText;
     }
 
-    Stream <<  " }";
-    return Stream.str();
+    Return += " }";
+    return Return;
 }
 
 bool CAction::CheckPrecondition(const CState& State) const
 {
-    if (!mPrecondition.HasIntersection(State))
+    if (mPrecondition.IsContradictory(State))
     {
-        return false;
+        return false; // The precondition is unmet.
     }
 
-    if (mEffect.IsNil())
+    if (mEffect.IsEmpty())
     {
-        return false; // Ineffective action
+        return false; // This action is ineffective.
     }
 
     return true;
 }
 
-std::optional<std::vector<SInterval>> CAction::CheckPostcondition(const CState& State) const
+std::unique_ptr<CState> CAction::CheckPostcondition(const CState& Postcondition) const
 {
-    // This action is considered as a candidate in regressive search if it can satisfy at least one desired fact
-    // and the current desired state has no conflicts with its effects and preconditions.
-    assert(&State.GetDefinition() == &GetDefinition());
-    auto Results = State.GetFacts(); // Copy facts for later modification
+    // This action is considered a candidate in the regressive search if it can satisfy at least one desired property,
+    // and its effects and preconditions do not conflict with the given desired state.
+    assert(&Postcondition.GetDefinition() == &GetDefinition());
+
+    std::unique_ptr<CState> Condition = Postcondition.Clone();
     bool AnySatisfaction = false;
+    CNumber Tolerance = GetDefinition().GetTolerance();
 
-    for (int i = 0; i < mEffect.GetTransformAmount(); i++)
+    for (int FactIndex = 0; FactIndex < mEffect.GetTransformCapacity(); FactIndex++)
     {
-        const CTransform& Transform = mEffect.GetTransform(i);
-        if (!Transform)
+        const CTransform& Transform = mEffect.GetTransform(FactIndex);
+        if (Transform.IsNil())
         {
-            continue;
+            continue; // Skip unset effects.
         }
 
-        SInterval& Target = Results[i];
-        if (!Target)
+        SSegment& Target = Condition->GetProperty(FactIndex);
+        if (Target.IsUnset())
         {
-            continue; // Ignore redundant effect
+            continue; // Skip unset constraints.
         }
 
-        const CFact* Fact = GetDefinition().GetFact(i);
-        const SInterval Range = Fact ? Fact->GetRange() : SInterval::Boundless;
+        const CFact* Fact = GetDefinition().GetFact(FactIndex);
+        const SSegment Range = Fact ? Fact->GetRange() : SSegment::Boundless;
 
-        switch (Transform.Neutralize(Target, Range))
+        switch (Transform.Reserve(Target, Range, Tolerance))
         {
         case ETriStateCompletion::failed:
-            return std::nullopt;        // Unfeasible effect
+            return {};                  // This action is infeasible due to the conflicting effect.
         case ETriStateCompletion::complete:
             AnySatisfaction = true;
-            Target = SInterval::Unset;  // Erase fully satisfied fact
+            Target = SSegment::Unset;   // Erase the fully satisfied property.
             break;
         case ETriStateCompletion::partial:
             AnySatisfaction = true;     // Partial satisfaction is okay.
@@ -96,28 +96,28 @@ std::optional<std::vector<SInterval>> CAction::CheckPostcondition(const CState& 
 
     if (!AnySatisfaction)
     {
-        return std::nullopt; // None of the effects can satisfy any desired facts.
+        return {}; // This action cannot satisfy any desired properties.
     }
 
-    for (int i = 0; i < mPrecondition.GetFactAmount(); i++)
+    for (int FactIndex = 0; FactIndex < mPrecondition.GetPropertyCapacity(); FactIndex++)
     {
-        const SInterval& Constraint = mPrecondition.GetFact(i);
-        if (!Constraint)
+        const SSegment& Constraint = mPrecondition.GetProperty(FactIndex);
+        if (Constraint.IsUnset())
         {
             continue;
         }
 
-        SInterval& Target = Results[i];
-        if (!Target) 
+        SSegment& Target = Condition->GetProperty(FactIndex);
+        if (Target.IsUnset())
         {
-            Target = Constraint; // Add precondition to desired state for this action to execute
+            Target = Constraint; // Add the precondition to the desired state if it does not exist.
         }
-        else if (!Target.Intersect(Constraint)) // Find common interval between precondition and desired state
+        else if (!Target.Intersect(Constraint, Tolerance)) // Find the intersection between the precondition and desired state.
         {
-            return std::nullopt; // Conflict between precondition and desired state
+            return {}; // This action is infeasible due to a conflict between the precondition and desired state.
         }
     }
 
-    return Results;
+    return Condition;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

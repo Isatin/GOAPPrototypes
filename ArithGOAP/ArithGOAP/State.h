@@ -6,58 +6,57 @@
 #include <string>
 #include <vector>
 
-#include "Interval.h"
+#include "Segment.h"
 
 
 namespace ArithGOAP
 {
     class CFact;
-    class CStateDefinition;
-    struct SFactRange;
+    class CFactDefinition;
+    struct SFactEquation;
     struct SNumericFactRange;
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CState // World state supporting Boolean, enumerations, and numbers 
+    class CState // World state storing Boolean, enumeration, and numeric properties
     {
         friend class CAction;
         friend class CEffect;
-        friend class CStateDefinition;
+        friend class CFactDefinition;
     public:
-        CState(const CStateDefinition& Def);
-        CState(const CStateDefinition& Def, std::vector<SInterval>&& Facts);
-
+        CState(const CFactDefinition& Definition);
         virtual ~CState() {}
-        virtual std::string ToString() const; // For debug
+
+        virtual std::unique_ptr<CState> Clone() const { return std::make_unique<CState>(*this); }
+        virtual std::string ToString() const; // For debugging
         virtual float GetExtraHeuristicCost(const CState& Another) const { return 0.f; } // Custom heuristic cost
-        virtual std::unique_ptr<CState> Clone(std::vector<SInterval>&& Facts) const { return std::make_unique<CState>(mDefinition, std::move(Facts)); }
 
-        std::unique_ptr<CState> Clone() const;
-        float GetBasicHeuristicCost(const CState& Another) const; // Heuristic cost based on fact differences
-        const CStateDefinition& GetDefinition() const { return mDefinition; }
+        float GetBaseHeuristicCost(const CState& Another) const; // Heuristic cost based on property comparisons
+        const CFactDefinition& GetDefinition() const { return mDefinition; }
 
-        int GetFactAmount() const { return (int) mValues.size(); } // Number of all facts including unset facts
-        int GetFactCount() const; // Number of set facts
-        const std::vector<SInterval>& GetFacts() const { return mValues; }
-        SInterval& GetFact(const CFact& Fact);
-        const SInterval& GetFact(const CFact& Fact) const;
-        const SInterval& GetFact(int Index) const;
-        bool SetFact(const CFact& Fact, const SInterval& Interval);
-        bool SetFact(const CFact& Fact, SNumber Value);
-        bool SetFact(const SFactRange& Range);
-        bool SetFact(const SNumericFactRange& Range);
+        bool IsEmpty() const { return CountProperties() <= 0; }
+        int CountProperties() const; // Number of properties that are set
+        int GetPropertyCapacity() const { return static_cast<int>(mProperties.size()); } // Total number of all properties, including unset ones
+        const std::vector<SSegment>& GetProperties() const { return mProperties; }
+        SSegment& GetProperty(const CFact& Fact);
+        const SSegment& GetProperty(const CFact& Fact) const;
+        const SSegment& GetProperty(int FactIndex) const;
+        bool SetProperty(const CFact& Fact, const SSegment& Segment);
+        bool SetProperty(const CFact& Fact, CNumber Value);
+        bool SetProperty(const SFactEquation& Equation);
+        bool SetProperty(const SNumericFactRange& Range);
 
-        // Check if all facts of this state has intersection with another state's
-        bool HasIntersection(const CState& Another) const;
-        // Clamp self by defined ranges
+        // Are any properties in this state contradictory to those in another state?
+        bool IsContradictory(const CState& Another) const;
+        // Clamp the property values to the fact ranges.
         void Clamp();
 
     protected:
         void Expand(int Size);
-        SInterval& GetFact(int Index);
-        bool SetFact(int Index, const SInterval& Interval);
+        SSegment& GetProperty(int FactIndex);
+        bool SetProperty(int FactIndex, const SSegment& Segment);
 
     private:
-        const CStateDefinition& mDefinition;
-        std::vector<SInterval> mValues;
+        const CFactDefinition& mDefinition;
+        std::vector<SSegment> mProperties;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
 }

@@ -1,49 +1,48 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows a case with positive divisors and another with positive and negative divisors.
+// This example shows a case with positive divisors and another case with extra negative divisors.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
 
 
 using namespace ArithGOAP;
-using VAR = ArithGOAP::SVariable;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
-    const auto& NumberFact = *Definition.DefineNumber("Number");
+    CFactDefinition Definition;
+    const auto& X = *Definition.DefineNumber("X");
 
     CState StartingState(Definition);
-    StartingState.SetFact(NumberFact, 100);
+    StartingState.SetProperty(X, 100);
 
     CState GoalState(Definition);
-    GoalState.SetFact(NumberFact <= 10);
+    GoalState.SetProperty(X <= 10);
 
     std::vector<CAction> Actions;
     {
-        CAction& DivideByZero = Actions.emplace_back("/0", Definition); // Divide-by-zero should be treated as invalid input.
-        DivideByZero.SetEffect(NumberFact /= 0);
+        CAction& DivideByZero = Actions.emplace_back("/0", Definition); // Division by zero should be treated as invalid input.
+        DivideByZero.SetEffect(X /= 0);
     }
     {
         CAction& Half = Actions.emplace_back("/2", Definition);
-        Half.SetEffect(NumberFact /= 2);
+        Half.SetEffect(X /= 2);
     }
     {
         CAction& OneThird = Actions.emplace_back("/3", Definition);
-        OneThird.SetEffect(NumberFact /= 3);
+        OneThird.SetEffect(X /= 3);
     }
     RunGOAPs(StartingState, GoalState, Actions);
 
+    GoalState.SetProperty(X <= -20);
     {
         CAction& NegHalf = Actions.emplace_back("/-2", Definition);
-        NegHalf.SetEffect(NumberFact /= -2);
+        NegHalf.SetEffect(X /= -2);
     }
     {
         CAction& NegQuarter = Actions.emplace_back("/-4", Definition);
-        NegQuarter.SetEffect(NumberFact /= -4);
+        NegQuarter.SetEffect(X /= -4);
     }
-    GoalState.SetFact(NumberFact <= -20);
     RunGOAPs(StartingState, GoalState, Actions);
 
     return 0;

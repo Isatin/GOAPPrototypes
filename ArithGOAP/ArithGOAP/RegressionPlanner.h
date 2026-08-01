@@ -5,26 +5,26 @@
 #include <map>
 #include <vector>
 
+#include "Node.h"
 
-namespace GOAP
+
+namespace ArithGOAP
 {
     class CAction;
     class CState;
-    struct SNode;
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CRegressivePlanner // Regressive GOAP
+    class CRegressionPlanner // Regressive arithmetic GOAP
     {
     public:
-        // Formulate a plan according to the input if possible. Otherwise, return false.
         bool Plan(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth);
 
     protected:
-        // Create a search node for the action and current node if the action is feasible
+        // Create a search node for a given action from a given node if feasible.
         void Explore(std::multimap<float, int>& oOpenMap, std::vector<SNode>& Nodes, int NodeIndex, const CAction& Action, const CState& StartingState);
-        // List the actions on the path
+        // List the actions on the path from a given node.
         void BuildPlan(std::vector<const CAction*>& oSteps, const std::vector<SNode>& Nodes, int NodeIndex);
-        // Return concatenated action names on the path
-        std::string GetPathName(const std::vector<SNode>& Nodes, int NodeIndex);
+        // Return concatenated names of the actions on the path from a given node.
+        std::string StringizePath(const std::vector<SNode>& Nodes, int NodeIndex) const;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
 }

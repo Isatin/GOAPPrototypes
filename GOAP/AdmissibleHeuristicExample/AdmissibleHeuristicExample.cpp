@@ -1,8 +1,9 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows a test case with admissible heuristic and non-admissible one.
-// By setting the action costs to the number of world properties in the second run, the heuristic is 
-// guaranteed to be no greater than the costs.
+// This example shows a test case with an inadmissible heuristic and another with an admissible one.
+// You can see in the first case, the heuristic overestimates the actual costs.
+// By setting the action costs to the number of world properties in the second case, these heuristic  
+// values are guaranteed to be no greater than the actual costs.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -15,20 +16,20 @@ using namespace GOAP;
 int main()
 {
     CState StartingState;
-    StartingState.SetFact("A", false);
-    StartingState.SetFact("B", false);
-    StartingState.SetFact("C", false);
-    StartingState.SetFact("D", false);
-    StartingState.SetFact("E", false);
-    StartingState.SetFact("F", false);
+    StartingState.SetProperty("A", false);
+    StartingState.SetProperty("B", false);
+    StartingState.SetProperty("C", false);
+    StartingState.SetProperty("D", false);
+    StartingState.SetProperty("E", false);
+    StartingState.SetProperty("F", false);
 
     CState GoalState;
-    GoalState.SetFact("A", true);
-    GoalState.SetFact("B", true);
-    GoalState.SetFact("C", true);
-    GoalState.SetFact("D", true);
-    GoalState.SetFact("E", true);
-    GoalState.SetFact("F", true);
+    GoalState.SetProperty("A", true);
+    GoalState.SetProperty("B", true);
+    GoalState.SetProperty("C", true);
+    GoalState.SetProperty("D", true);
+    GoalState.SetProperty("E", true);
+    GoalState.SetProperty("F", true);
 
     std::vector<CAction> Actions;
     {
@@ -83,13 +84,13 @@ int main()
         ActionEF.SetEffect("F", true);
     }
 
-    std::cout << "    NON-ADMISSIBLE HEURISTIC\n";
+    std::cout << "    INADMISSIBLE HEURISTIC\n";
     RunGOAPs(StartingState, GoalState, Actions);
 
     std::cout << "    ADMISSIBLE HEURISTIC\n";
     for (CAction& Action : Actions)
     {
-        Action.SetBaseCost((float) StartingState.GetFactCount());
+        Action.SetBaseCost(static_cast<float>(StartingState.GetPropertyCount()));
     }
     RunGOAPs(StartingState, GoalState, Actions);
 

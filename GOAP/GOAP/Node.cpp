@@ -2,7 +2,6 @@
 
 #include <sstream>
 
-#include "GOAP.h"
 #include "Node.h"
 #include "State.h"
 
@@ -16,11 +15,11 @@ std::string SNode::ToString() const
 
     if (ExtraHeuristicCost == 0.f)
     {
-        Stream << BasicHeuristicCost;
+        Stream << BaseHeuristicCost;
     }
     else
     {
-        Stream << "(" << BasicHeuristicCost << "+" << ExtraHeuristicCost << ")";
+        Stream << "(" << BaseHeuristicCost << "+" << ExtraHeuristicCost << ")";
     }
     
     Stream << " Depth=" << Depth << " {" << (ConstState ? ConstState->ToString() : "") << "}}";

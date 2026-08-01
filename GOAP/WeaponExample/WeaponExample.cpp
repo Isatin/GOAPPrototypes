@@ -1,8 +1,8 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is from Orkin's "Applying Goal-Oriented Action Planning to Games" as it's probably
-// the most known example of GOAP and it would be a good starting point to learn the improved 
-// regressive algorithm by comparing the output of iterations with the original method.
+// This example is from Dr. Orkin's "Applying Goal-Oriented Action Planning to Games". As it's 
+// probably the best-known example of GOAP, it serves as a good starting point to see how the  
+// improved regressive algorithm works compared to the original method (see CBackwardPlanner).
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
@@ -15,12 +15,12 @@ using namespace GOAP;
 int main()
 {
     CState StartingState;
-    StartingState.SetFact("TargetIsDead", false);
-    StartingState.SetFact("WeaponIsLoaded", false);
-    StartingState.SetFact("WeaponIsArmed", false);
+    StartingState.SetProperty("TargetIsDead", false);
+    StartingState.SetProperty("WeaponIsLoaded", false);
+    StartingState.SetProperty("WeaponIsArmed", false);
 
     CState GoalState;
-    GoalState.SetFact("TargetIsDead", true);  
+    GoalState.SetProperty("TargetIsDead", true);  
 
     std::vector<CAction> Actions;
     {
@@ -31,6 +31,7 @@ int main()
     {
         CAction& LoadWeapon = Actions.emplace_back("LW");
         LoadWeapon.SetPrecondition("WeaponIsArmed", true);
+        //LoadWeapon.SetPrecondition("WeaponIsLoaded", false); // This line makes the backward GOAP not work.
         LoadWeapon.SetEffect("WeaponIsLoaded", true);
     }
     {
@@ -38,6 +39,6 @@ int main()
         DrawWeapon.SetEffect("WeaponIsArmed", true);
     }
 
-    RunGOAPs(StartingState, GoalState, Actions);
+    RunGOAPs(StartingState, GoalState, Actions, 0, DefaultGOAPs | BackwardGOAP);
     return 0;
 }

@@ -13,11 +13,9 @@ namespace ArithGOAP
 {
     class CFact;
     class CState;
-    class CStateDefinition;
-    struct SBooleanFactOperation;
+    class CFactDefinition;
     struct SFactOperation;
-    struct SInterval;
-    struct SNumericFactOperation;
+    struct SSegment;
     ///////////////////////////////////////////////////////////////////////////////////////////////
     enum class ETriStateCompletion
     {
@@ -26,65 +24,62 @@ namespace ArithGOAP
         partial,
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CTransform // Operation with a numeric operand on a variable not included in the class
+    class CTransform // Operation on a constant number and an external variable
     {
     public:
         static const CTransform Nil;
 
+    public:
         CTransform() = default;
-        CTransform(EOperator Op, SNumber Value) : Operator(Op), Operand(Value) {}
+        CTransform(EOperator Op, CNumber Value) : Operator(Op), Operand(Value) {}
 
-        bool operator ! () const { return IsNil(); }
-        operator bool() const { return !IsNil(); }
-
-        std::string ToString() const; // For debug
-        std::string ToString(const std::string& Subject) const; // For debug
+        std::string ToString() const; // For debugging
+        std::string Stringize(const std::string& Subject) const; // For debugging
 
         EOperator GetOperator() const { return Operator; }
-        SNumber GetOperand() const { return Operand; }
+        CNumber GetOperand() const { return Operand; }
 
-        // Whether the operation is nil
+        // Is the operator nil?
         bool IsNil() const { return Operator == EOperator::nil; }
-        // Apply this transformation to the given number
-        void ApplyTo(SNumber& Number) const;
-        // Apply this transformation to the given interval
-        void ApplyTo(SInterval& Interval) const;
-        // Solve clamp(x Operator Operand, Range) ∩ Target ≠ Ø for x
-        ETriStateCompletion Neutralize(SInterval& Target, const SInterval& Range) const;
+        // Apply this transformation to a given number.
+        void ApplyTo(CNumber& oNumber) const;
+        // Apply this transformation to a given segment.
+        void ApplyTo(SSegment& oSegment) const;
+        // Solve clamp(x Operator Operand, Range) ∩ Target ≠ Ø for x.
+        ETriStateCompletion Reserve(SSegment& oTarget, const SSegment& Range, CNumber Tolerance = CNumber::DefaultTolerance) const;
 
     private:
         EOperator Operator = EOperator::nil;
-        SNumber Operand{};
+        CNumber Operand{};
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CEffect // Collection of transformation
+    class CEffect // Collection of transformations
     {
         friend class CAction;
     public:
-        CEffect(const CStateDefinition& Def);
-        std::string ToString() const; // For debug
+        CEffect(const CFactDefinition& Definition);
 
-        const CStateDefinition& GetDefinition() const { return mDefinition; }
+        std::string ToString() const; // For debugging
 
-        bool IsNil() const;
-        int GetTransformAmount() const { return (int) mTransforms.size(); }
-        int GetTransformCount() const;
+        bool IsEmpty() const;
+        const CFactDefinition& GetDefinition() const { return mDefinition; }
+
+        int GetTransformCapacity() const { return static_cast<int>(mTransforms.size()); } // Total number of all transforms, including unset ones
+        int CountTransforms() const; // Number of transforms that are set
         const CTransform& GetTransform(const CFact& Fact) const;
-        const CTransform& GetTransform(int Index) const;
+        const CTransform& GetTransform(int FactIndex) const;
         bool SetTransform(const CFact& Fact, const CTransform& Transform);
-        bool SetTransform(const CFact& Fact, SNumber Value);
+        bool SetTransform(const CFact& Fact, CNumber Value);
         bool SetTransform(const SFactOperation& Operation);
-        bool SetTransform(const SBooleanFactOperation& Operation);
-        bool SetTransform(const SNumericFactOperation& Operation);
 
-        // Apply this effect to the given state
+        // Apply this effect to a given state.
         void ApplyTo(CState& State) const;
 
     private:
         void Expand(int Size);
 
     private:
-        const CStateDefinition& mDefinition;
+        const CFactDefinition& mDefinition;
         std::vector<CTransform> mTransforms;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////

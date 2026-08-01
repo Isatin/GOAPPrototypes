@@ -1,32 +1,29 @@
 // Copyright 2024 Isaac Hsu
 
+#include "Fact.h"
 #include "Notation.h"
 
 
 using namespace ArithGOAP;
-///////////////////////////////////////////////////////////////////////////////////////////////////
-SVariableRange SVariable::operator == (SNumber Value) const
-{
-    return {*this, Value, Value};
+///////////////////////////////////////////////////////////////////////////////////////////////
+SFactOperation ArithGOAP::operator ! (const CBooleanFact& Fact)
+{ 
+    return {Fact, EOperator::negation, 0}; 
 }
 
-SVariableRange SVariable::operator <= (SNumber Value) const
-{
-    return {*this, -SNumber::Infinity, Value};
+SFactOperation ArithGOAP::operator - (const CNumericFact& Fact)
+{ 
+    return {Fact, EOperator::multiplication, -1}; 
+}
+///////////////////////////////////////////////////////////////////////////////////////////////
+SFactEquation ArithGOAP::operator == (const CBooleanFact& Fact, bool Value)
+{ 
+    return SFactEquation(Fact, Value);
 }
 
-SVariableRange ArithGOAP::operator <= (SNumber Value, const SVariable& Var)
-{
-    return {Var, Value, SNumber::Infinity};
-}
-
-SVariableRange SVariable::operator >= (SNumber Value) const
-{
-    return {*this, Value, SNumber::Infinity};
-}
-
-SVariableRange ArithGOAP::operator >= (SNumber Value, const SVariable& Var)
-{
-    return {Var, -SNumber::Infinity, Value};
+SFactEquation ArithGOAP::operator == (const CEnumerationFact& Fact, int Value)
+{ 
+    return SFactEquation(Fact, Value); 
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+

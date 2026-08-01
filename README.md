@@ -1,99 +1,100 @@
-GOAP prototypes
+GOAP Prototypes
 =========
-This is my personal research program of GOAP in C++.  
-I share it online because it may contain useful information for others interested in GOAP.
+This is my research project for extending a game AI technique called Goal-Oriented Action Planning (GOAP) in C++.  
+I shared it online because it might be useful or inspiring to developers interested in GOAP.  
+However, my work focuses on only the planning algorithms and does not address goal selection and plan execution.  
 
-There are two independent sets of projects:
-- `GOAP` supports world properties of Boolean and enumerations.
-- `ArithGOAP` additionally supports world properties of floating-point numbers with arithmetic operations.
+There are two independent groups of projects:
+- `GOAP` supports Boolean and enumeration world properties.
+- `ArithGOAP` adds support for numeric world properties and arithmetic operations.
 
-Three planning algorithms are implemented in both `GOAP` and `ArithGOAP`:
-- forward search
-- regressive search
-- regressive search with lookup tables
+Three planner classes are implemented across the two groups:
+- `CForwardPlanner`
+- `CRegressionPlanner`
+- `CAdvRegressionPlanner`: an improved version of `CRegressionPlanner`
 
-However, my work focuses on only the planning algorithms and does not contain goal selection and plan execution.
+In addtion, a modified version of the original regressive GOAP, named `CBackwardPlanner`, is available in `GOAP` for reference.
 
-## Quickstart
-1. Download and install Visual Studio 2022 Community Edition
-2. Open the solution files (GOAP.sln or ArithGOAP.sln) with Visual Studio 2022
-3. In Solution Explorer, right click one of the example projects and left click popup menu item "Set as Startup Project"
-4. Press F5 to compile and run the selected project
-5. Check the results in console window
+## Quick Start
+1. Download and install Visual Studio 2022 Community Edition.
+2. Open a solution file (.sln) with Visual Studio 2022.
+3. In Solution Explorer, right click an example project and select "Set as Startup Project" from the context menu.
+4. Press F5 to compile and run the selected project.
+5. The results are shown in the console window.
 
-Although the code is written in Visual Studio on Windows, it should be able to get compiled and run in other C++20 IDEs with proper setup since the projects are just console programs and they only depend on STL.
+Although written in Visual Studio for Windows, the code should compile and run in any C++20 IDE with a proper setup, as these projects are simply console programs depending only on the STL.
 
 ## Manual
 
-The library code of `GOAP` and `ArithGOAP` is put in their respective namespaces.  
-World states are just called states and world properties are called facts in the code.  
-Goals are simply described as goal states.
+The library code for `GOAP` and `ArithGOAP` is placed in their own namespaces.  
+In the code, world states are simply called states and world properties are called facts.  
+Goals and preconditions are also expressed as states.
 
 ### `GOAP`
 
 #### World State
-The base class of world state is `CState` and it's used for everything such as the starting and goal states, preconditions and effects of actions.  
-It can be set up by calling its member function `SetFact` as the following example:
+The world state type, `CState`, is used for various GOAP components, such as the starting and goal states, and the preconditions and effects of actions. It can be set up by calling its member function `SetProperty`, as shown in the following example.
 ```
-enum EPlace {bedroom, kitchen, studio};
+enum EPlace {bedroom, kitchen, workshop};
 
 CState StartingState;
-StartingState.SetFact("Where", bedroom);
-StartingState.SetFact("Hungry", true);
+StartingState.SetProperty("Where", bedroom);
+StartingState.SetProperty("Hungry", true);
 
 CState GoalState;
-GoalState.SetFact("Hungry", false);
+GoalState.SetProperty("Hungry", false);
 ```
 #### Action
-The base class of action is `CAction` and it can be set up by calling its member function `SetPrecondition` & `SetEffect` as follows:
+The action type, `CAction`, can be set up by calling its member functions `SetPrecondition` and `SetEffect`, as shown below.
 ```
 CAction Eat("Eat");
 Eat.SetPrecondition("Where", kitchen);
 Eat.SetEffect("Hungry", false);
 ```
 #### Planning
-You need to pack the actions in a `std::vector` and call `ForwardSearch`/`RegressiveSearch`/`LUTRegressiveSearch`  
-or call `RunGOAPs` for testing all three.
+Pack the actions into a `std::vector` and call `ForwardSearch`/`BackwardSearch`/`RegressiveSearch`/`AdvRegressiveSearch`.  
+Alternatively, call `RunGOAPs` to invoke multiple planners.  
 
 ### `ArithGOAP`
 
-In namespace `ArithGOAP`, you can use the following C++ operators on facts to set up world states and actions:
+In the namespace `ArithGOAP`, you can use the following C++ operators on facts to set up world states and actions:
 | types of world property | world states/preconditoins | effects                     |
 |-------------------------|----------------------------|-----------------------------|
 | Boolean                 | `==`                       | `=`, `!`                    |
 | enumeration             | `==`                       | `=`                         |
-| floating-point number   | `==`, `<=`, `>=`           | `=`, `+=`, `-=`, `*=`, `/=` |
+| number                  | `==`, `<=`, `>=`           | `=`, `+=`, `-=`, `*=`, `/=` |
 #### World Property  
-The first thing you need to do is to define your world properties with a `CStateDefinition` instance like:
+The first thing to do is to define world properties with a `CStateDefinition` instance like the code below.
 ```
-CStateDefinition Definition;
-auto& WhereFact     = *Definition.DefineEnumeration("Where");
-auto& HasHammerFact = *Definition.DefineBoolean("HasHammer");
-auto& WoodFact      = *Definition.DefineNumber("Wood");
-auto& TableFact     = *Definition.DefineNumber("Table");
+CFactDefinition Definition;
+auto& Where     = *Definition.DefineEnumeration("Where");
+auto& HasHammer = *Definition.DefineBoolean("HasHammer");
+auto& Wood      = *Definition.DefineNumber("Wood");
+auto& Table     = *Definition.DefineNumber("Table");
 ```
 #### World State
-The base class of world state is `CState` and you can set it up with operator `==` on all facts or `<=`, `>=` on numeric facts as the following:
+You can configure start states by calling `SetProperty`—as seen in `GOAP`—and set up goal states using the `==` operator on facts, or the `<=` and `>=` operators on numeric facts, as follows:  
 ```
 CState StartingState(Definition);
-StartingState.SetFact(WhereFact == bedroom);
-StartingState.SetFact(HasHammerFact == false);
-StartingState.SetFact(WoodFact == 10);
-StartingState.SetFact(TableFact == 0);
+StartingState.SetProperty(Where, bedroom);
+StartingState.SetProperty(HasHammer, false);
+StartingState.SetProperty(Wood, 10);
+StartingState.SetProperty(Table, 0);
 
 CState GoalState(Definition);
-GoalState.SetFact(TableFact >= 1);
+GoalState.SetProperty(Where == kitchen);
+GoalState.SetProperty(Table >= 1);
 ```
 #### Action
-The base class of action is `CAction` and you can set up preconditions like world states and set up effects with operator `=` on all facts, or `+=`, `-=`, `*=`, `/=` on numeric facts like:
+You can create actions with `CAction`, set up preconditions like goal states, and specify effects using the operator `=` on facts, or the `+=`, `-=`, `*=`, and `/=` operators on numeric facts, as shown in the following snippet.  
 ```
 CAction Craft("Craft", Definition);
-Craft.SetPrecondition(WhereFact == studio);
-Craft.SetPrecondition(HasHammerFact == true);
-Craft.SetPrecondition(WoodFact >= 3);
-Craft.SetEffect(WoodFact -= 3);
-Craft.SetEffect(TableFact += 1);
+Craft.SetPrecondition(Where == workshop);
+Craft.SetPrecondition(HasHammer == true);
+Craft.SetPrecondition(Wood >= 3);
+Craft.SetEffect(Wood -= 3);
+Craft.SetEffect(Table += 1);
 ```
 #### Planning  
-You need to pack the actions in a `std::vector` and call `ForwardSearch`/`RegressiveSearch`/`LUTRegressiveSearch`  
-or call `RunGOAPs` for testing all three.
+Pack the actions into a `std::vector` and call `ForwardSearch`/`RegressiveSearch`/`AdvRegressiveSearch`  
+or use `RunGOAPs` for multiple planners.  

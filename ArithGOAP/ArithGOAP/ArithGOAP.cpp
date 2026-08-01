@@ -3,10 +3,9 @@
 #include <unordered_set>
 
 #include "Action.h"
+#include "AdvRegressionPlanner.h"
 #include "ArithGOAP.h"
 #include "ForwardPlanner.h"
-#include "LUTRegressivePlanner.h"
-#include "RegressivePlanner.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,13 +18,14 @@ namespace ArithGOAP
             return false;
         }
 
-        std::unordered_set<int> UsedFactIndices;
+        std::unordered_set<int> UsedFactIndexes;
+        UsedFactIndexes.reserve(GoalState.GetPropertyCapacity());
 
-        for (int i = 0; i < GoalState.GetFactAmount(); i++)
+        for (int FactIndex = 0; FactIndex < GoalState.GetPropertyCapacity(); FactIndex++)
         {
-            if (GoalState.GetFact(i))
+            if (GoalState.GetProperty(FactIndex).IsSet())
             {
-                UsedFactIndices.insert(i);
+                UsedFactIndexes.insert(FactIndex);
             }
         }
 
@@ -37,27 +37,27 @@ namespace ArithGOAP
             }
 
             const auto& Precondition = Action->GetPrecondition();
-            for (int i = 0; i < Precondition.GetFactAmount(); i++)
+            for (int FactIndex = 0; FactIndex < Precondition.GetPropertyCapacity(); FactIndex++)
             {
-                if (Precondition.GetFact(i))
+                if (Precondition.GetProperty(FactIndex).IsSet())
                 {
-                    UsedFactIndices.insert(i);
+                    UsedFactIndexes.insert(FactIndex);
                 }
             }
 
             const auto& Effect = Action->GetEffect();
-            for (int i = 0; i < Effect.GetTransformAmount(); i++)
+            for (int FactIndex = 0; FactIndex < Effect.GetTransformCapacity(); FactIndex++)
             {
-                if (Effect.GetTransform(i))
+                if (!Effect.GetTransform(FactIndex).IsNil())
                 {
-                    UsedFactIndices.insert(i);
+                    UsedFactIndexes.insert(FactIndex);
                 }
             }
         }
 
-        for (int Index : UsedFactIndices)
+        for (int FactIndex : UsedFactIndexes)
         {
-            if (!StartingState.GetFact(Index)) // Check if all used starting values are set
+            if (StartingState.GetProperty(FactIndex).IsUnset()) // Check if all used starting values have been set.
             {
                 return false;
             }
@@ -84,18 +84,18 @@ namespace ArithGOAP
             return false;
         }
 
-        CRegressivePlanner Planner;
+        CRegressionPlanner Planner;
         return Planner.Plan(oSteps, StartingState, GoalState, Actions, MaxDepth);
     }
 
-    bool LUTRegressiveSearch(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
+    bool AdvRegressiveSearch(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
     {
         if (!CheckInput(StartingState, GoalState, Actions))
         {
             return false;
         }
 
-        CLUTRegressivePlanner Planner;
+        CAdvRegressionPlanner Planner;
         return Planner.Plan(oSteps, StartingState, GoalState, Actions, MaxDepth);
     }
 }

@@ -3,9 +3,10 @@
 #include <unordered_set>
 
 #include "Action.h"
+#include "AdvRegressionPlanner.h"
+#include "BackwardPlanner.h"
 #include "ForwardPlanner.h"
-#include "LUTRegressivePlanner.h"
-#include "RegressivePlanner.h"
+#include "RegressionPlanner.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -14,28 +15,29 @@ namespace GOAP
     bool CheckInput(const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions)
     {
         std::unordered_set<std::string> UsedFacts;
+        UsedFacts.reserve(GoalState.GetPropertyCount());
 
-        for (auto& [Key, Value] : GoalState)
+        for (auto& [Name, Value] : GoalState)
         {
-            UsedFacts.insert(Key);
+            UsedFacts.insert(Name);
         }
 
         for (const CAction* Action : Actions)
         {
-            for (auto& [Key, Value] : Action->GetPrecondition())
+            for (auto& [Name, Value] : Action->GetPrecondition())
             {
-                UsedFacts.insert(Key);
+                UsedFacts.insert(Name);
             }
 
-            for (auto& [Key, Value] : Action->GetEffect())
+            for (auto& [Name, Value] : Action->GetEffect())
             {
-                UsedFacts.insert(Key);
+                UsedFacts.insert(Name);
             }
         }
 
-        for (const std::string& Key : UsedFacts)
+        for (const std::string& Name : UsedFacts)
         {
-            if (!StartingState.GetFact(Key)) // Check if all used starting values are set
+            if (!StartingState.GetProperty(Name)) // Check if all used starting values have been set.
             {
                 return false;
             }
@@ -55,6 +57,17 @@ namespace GOAP
         return Planner.Plan(oSteps, StartingState, GoalState, Actions, MaxDepth);
     }
 
+    bool BackwardSearch(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
+    {
+        if (!CheckInput(StartingState, GoalState, Actions))
+        {
+            return false;
+        }
+
+        CBackwardPlanner Planner;
+        return Planner.Plan(oSteps, StartingState, GoalState, Actions, MaxDepth);
+    }
+
     bool RegressiveSearch(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
     {
         if (!CheckInput(StartingState, GoalState, Actions))
@@ -62,18 +75,18 @@ namespace GOAP
             return false;
         }
 
-        CRegressivePlanner Planner;
+        CRegressionPlanner Planner;
         return Planner.Plan(oSteps, StartingState, GoalState, Actions, MaxDepth);
     }
 
-    bool LUTRegressiveSearch(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
+    bool AdvRegressiveSearch(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth)
     {
         if (!CheckInput(StartingState, GoalState, Actions))
         {
             return false;
         }
 
-        CLUTRegressivePlanner Planner;
+        CAdvRegressionPlanner Planner;
         return Planner.Plan(oSteps, StartingState, GoalState, Actions, MaxDepth);
     }
 }

@@ -3,8 +3,9 @@
 #pragma once
 
 #include <map>
-#include <string>
 #include <vector>
+
+#include "Node.h"
 
 
 namespace ArithGOAP
@@ -12,39 +13,18 @@ namespace ArithGOAP
     class CAction;
     class CState;
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CForwardPlanner // Forward GOAP
+    class CForwardPlanner // Forward arithmetic GOAP
     {
-        struct SNode
-        {
-            const CAction* Action = nullptr;// Action taken from the parent node to this node
-            // ConstState and MutableState are pointed to the same state except the mutable counterparts of const-only states (starting and goal states) are null.
-            const CState* ConstState = nullptr;
-            std::unique_ptr<CState> MutableState;
-
-            int Parent = -1;                // Index of parent node
-            int Depth = 0;                  // Depth of this node in search tree
-            float PreviousCost = 0.f;       // Cost of previous actions
-            float CurrentCost = 0.f;        // Cost of current action
-            float BasicHeuristicCost = 0.f; // Heuristic cost based on facts of current and goal state
-            float ExtraHeuristicCost = 0.f; // Custom heuristic cost
-
-            float GetActualCost() const { return PreviousCost + CurrentCost; }
-            float GetHeuristicCost() const { return BasicHeuristicCost + ExtraHeuristicCost; }
-            float GetTotalCost() const { return GetActualCost() + GetHeuristicCost(); }
-
-            std::string ToString() const;   // For debug
-        };
-
     public:
         bool Plan(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth);
 
     protected:
-        // Create a search node for the action and current node if the action is feasible
+        // Create a search node for a given action from a given node if feasible.
         void Explore(std::multimap<float, int>& oOpenMap, std::vector<SNode>& Nodes, int NodeIndex, const CAction& Action, const CState& GoalState);
-        // List the actions on the path
+        // List the actions on the path to a given node.
         void BuildPlan(std::vector<const CAction*>& oSteps, const std::vector<SNode>& Nodes, int NodeIndex);
-        // Return concatenated action names on the path
-        std::string GetPathName(const std::vector<SNode>& Nodes, int NodeIndex);
+        // Return concatenated names of the actions on the path to a given node.
+        std::string StringizePath(const std::vector<SNode>& Nodes, int NodeIndex) const;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
 }

@@ -1,49 +1,48 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is three test cases of multiplication.
+// This example shows three test cases where effects use multiplication.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
 
 
 using namespace ArithGOAP;
-using VAR = ArithGOAP::SVariable;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
-    const auto& NumberFact = *Definition.DefineNumber("Number");
+    CFactDefinition Definition;
+    const auto& X = *Definition.DefineNumber("X");
 
     CState StartingState(Definition);
-    StartingState.SetFact(NumberFact, 10);
+    StartingState.SetProperty(X, 10);
 
     CState GoalState(Definition);
-    GoalState.SetFact(NumberFact >= 100);
+    GoalState.SetProperty(X >= 100);
 
     std::vector<CAction> Actions;
     {
         CAction& Double = Actions.emplace_back("*2", Definition);
-        Double.SetEffect(NumberFact *= 2);
+        Double.SetEffect(X *= 2);
     }
     {
         CAction& Triple = Actions.emplace_back("*3", Definition);
-        Triple.SetEffect(NumberFact *= 3);
+        Triple.SetEffect(X *= 3);
     }
     {
         CAction& Zeroize = Actions.emplace_back("*0", Definition);
-        Zeroize.SetEffect(NumberFact *= 0);
+        Zeroize.SetEffect(X *= 0);
     }
     {
-        CAction& Negation = Actions.emplace_back("*-1", Definition);
-        Negation.SetEffect(-NumberFact);
+        CAction& Opposite = Actions.emplace_back("*-1", Definition);
+        Opposite.SetEffect(-X);
     }
 
     RunGOAPs(StartingState, GoalState, Actions);
 
-    GoalState.SetFact(NumberFact == 0);
+    GoalState.SetProperty(X == 0);
     RunGOAPs(StartingState, GoalState, Actions);
 
-    GoalState.SetFact(NumberFact <= -100);
+    GoalState.SetProperty(X <= -100);
     RunGOAPs(StartingState, GoalState, Actions);
 
     return 0;

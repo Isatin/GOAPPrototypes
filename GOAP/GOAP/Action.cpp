@@ -1,7 +1,5 @@
 // Copyright 2024 Isaac Hsu
 
-#include <sstream>
-
 #include "Action.h"
 
 
@@ -9,42 +7,42 @@ using namespace GOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 CAction::CAction(const std::string& Name)
     : mName(Name)
-{
-}
+{}
 
 std::string CAction::ToString() const
 {
-    std::stringstream Stream;
-    Stream << mName << "{ ";
+    std::string Return = mName;
+    Return += "{ ";
 
-    std::string PreconditionStr = mPrecondition.ToString();
-    if (!PreconditionStr.empty())
+    if (!mPrecondition.IsEmpty())
     {
-        Stream << PreconditionStr << " ";
+        Return += mPrecondition.ToString();
+        Return += ' ';
     }
 
-    Stream << "=>";
+    Return += "->";
 
-    std::string EffectStr = mEffect.ToString();
-    if (!EffectStr.empty())
+    std::string EffectText = mEffect.ToString();
+    if (!EffectText.empty())
     {
-        Stream << " " << EffectStr;
+        Return += ' ';
+        Return += EffectText;
     }
 
-    Stream << " }";
-    return Stream.str();
+    Return += " }";
+    return Return;
 }
 
 bool CAction::CheckPrecondition(const CState& State) const
 {
     if (!mPrecondition.IsSatisfiedBy(State))
     {
-        return false;
+        return false; // The precondition is unmet.
     }
 
-    if (mEffect.GetFactCount() <= 0)
+    if (mEffect.GetPropertyCount() <= 0)
     {
-        return false; // Ineffective action
+        return false; // This action is ineffective.
     }
 
     return true;
@@ -52,27 +50,27 @@ bool CAction::CheckPrecondition(const CState& State) const
 
 bool CAction::CheckPostcondition(const CState& State) const
 {
-    // This action is considered as a candidate in regressive search if it has at least one desired effect
-    // and the current desired state has no conflicts with its effects and preconditions.
+    // This action is considered a candidate in the regressive search if it has at least one desired effect,
+    // and its effects and preconditions have no conflicts with the desired state.
     bool AnySatisfaction = false;
 
-    for (auto& [Key, Aim] : State)
+    for (auto& [Name, Target] : State)
     {
-        std::optional<PFact> Effect = mEffect.GetFact(Key);
-        if (Effect == Aim)
+        std::optional<BProperty> Effect = mEffect.GetProperty(Name);
+        if (Effect == Target)
         {
             AnySatisfaction = true;
-            continue; // This fact will be removed as it's satisfied by the effect so it's needless to check conflict with the precondition.
+            continue; // This property will be removed as it's satisfied by the effect, making it unnecessary to check against the precondition.
         }
         else if (Effect)
         {
             return false; // Any mismatched effects are not allowed.
         }
 
-        std::optional<PFact> Requirement = mPrecondition.GetFact(Key);
-        if (Requirement && Requirement != Aim)
+        std::optional<BProperty> Constraint = mPrecondition.GetProperty(Name);
+        if (Constraint && Constraint != Target)
         {
-            return false; // Preconditions will become desired facts but this precondition conflicts with current state.
+            return false; // The precondition conflicts with the desired state, making the action infeasible.
         }
     }
 

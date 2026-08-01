@@ -16,16 +16,16 @@ namespace GOAP
     class CForwardPlanner // Forward GOAP
     {
     public:
-        // Formulate a plan according to the input if possible. Otherwise, return false.
+        // Formulate a plan from the input if possible. Return true if successful.
         bool Plan(std::vector<const CAction*>& oSteps, const CState& StartingState, const CState& GoalState, const std::vector<const CAction*>& Actions, int MaxDepth);
 
     protected:
-        // Create a search node for the action and current node if the action is feasible
+        // Create a search node for a given action from a given node if feasible.
         void Explore(std::multimap<float, int>& oOpenMap, std::vector<SNode>& Nodes, int NodeIndex, const CAction& Action, const CState& GoalState);
-        // List the actions on the path
+        // List the actions on the path to a given node.
         void BuildPlan(std::vector<const CAction*>& oSteps, const std::vector<SNode>& Nodes, int NodeIndex);
-        // Return concatenated action names on the path
-        std::string GetPathName(const std::vector<SNode>& Nodes, int NodeIndex);
+        // Return concatenated names of the actions on the path to a given node.
+        std::string StringizePath(const std::vector<SNode>& Nodes, int NodeIndex) const;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
 }

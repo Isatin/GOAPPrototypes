@@ -1,7 +1,6 @@
 // Copyright 2024 Isaac Hsu
 
 #include <cassert>
-#include <sstream>
 
 #include "Fact.h"
 #include "Notation.h"
@@ -10,7 +9,7 @@
 
 using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CFact::CFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor)
+CFact::CFact(CFactDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor)
     : mOwner(Owner)
     , mIndex(Index)
     , mName(Name)
@@ -19,136 +18,119 @@ CFact::CFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactT
     , mHeuristicFunctor(HeuristicFunctor)
 {}
 
-void CFact::SetDistanceWeight(SNumber DistanceWeight)
+void CFact::SetGapWeight(CNumber GapWeight)
 {
-    if (CHeuristicFunctor HeuristicFunctor = mOwner.GenerateHeuristicFunctor(mType, DistanceWeight))
+    if (CHeuristicFunctor HeuristicFunctor = mOwner.GenerateHeuristicFunctor(mType, GapWeight))
     {
         SetHeuristicFunctor(HeuristicFunctor);
     }
 }
-
-SFactRange CFact::operator == (SNumber Value) const
-{
-    return {*this, Value, Value};
-}
-
-SFactOperation CFact::operator = (SNumber Value) const
-{
-    return {*this, EOperator::Assign, Value};
-}
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CBooleanFact::CBooleanFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor)
-    : CFact(Owner, Index, Name, Type, Range, HeuristicFunctor)
+CBooleanFact::CBooleanFact(CFactDefinition& Owner, int Index, const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor)
+    : CFact(Owner, Index, Name, EFactType::boolean, Range, HeuristicFunctor)
 {}
 
-SBooleanFactOperation CBooleanFact::operator = (SNumber Value) const
+SFactOperation CBooleanFact::operator = (bool Value) const
 {
-    return {*this, EOperator::Assign, Value};
-}
-
-SBooleanFactOperation CBooleanFact::operator ! () const
-{
-    return {*this, EOperator::Negation, 0};
+    return SFactOperation(*this, EOperator::assignment, Value);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CNumericFact::CNumericFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor)
-    : CFact(Owner, Index, Name, Type, Range, HeuristicFunctor)
+CEnumerationFact::CEnumerationFact(CFactDefinition& Owner, int Index, const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor)
+    : CFact(Owner, Index, Name, EFactType::enumeration, Range, HeuristicFunctor)
 {}
 
-SNumericFactRange CNumericFact::operator == (SNumber Value) const
+SFactOperation CEnumerationFact::operator = (int Value) const
 {
-    return {*this, Value, Value};
-}
-
-SNumericFactRange CNumericFact::operator <= (SNumber Value) const
-{
-    return {*this, -SNumber::Infinity, Value};
-}
-
-SNumericFactRange CNumericFact::operator >= (SNumber Value) const
-{
-    return {*this, Value, SNumber::Infinity};
-}
-
-SNumericFactRange ArithGOAP::operator <= (SNumber Value, const CNumericFact& Fact)
-{
-    return {Fact, Value, SNumber::Infinity};
-}
-
-SNumericFactRange ArithGOAP::operator >= (SNumber Value, const CNumericFact& Fact)
-{
-    return {Fact, -SNumber::Infinity, Value};
-}
-
-SNumericFactOperation CNumericFact::operator = (SNumber Value) const
-{
-    return {*this, EOperator::Assign, Value};
-}
-
-SNumericFactOperation CNumericFact::operator += (SNumber Value) const
-{
-    return {*this, EOperator::Addition, Value};
-}
-
-SNumericFactOperation CNumericFact::operator -= (SNumber Value) const
-{
-    return {*this, EOperator::Addition, -Value};
-}
-
-SNumericFactOperation CNumericFact::operator *= (SNumber Value) const
-{
-    return {*this, EOperator::Multiplication, Value};
-}
-
-SNumericFactOperation CNumericFact::operator /= (SNumber Value) const
-{
-    return {*this, EOperator::Multiplication, 1 / Value};
-}
-
-SNumericFactOperation CNumericFact::operator - () const
-{
-    return {*this, EOperator::Multiplication, -1};
+    return SFactOperation(*this, EOperator::assignment, Value);
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-std::string CStateDefinition::StringizeBoundedRanges() const
+CNumericFact::CNumericFact(CFactDefinition& Owner, int Index, const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor)
+    : CFact(Owner, Index, Name, EFactType::number, Range, HeuristicFunctor)
+{}
+
+SFactOperation CNumericFact::operator = (CNumber Value) const
 {
-    std::stringstream Stream;
-    bool First = true;
+    return {*this, EOperator::assignment, Value};
+}
+
+SFactOperation CNumericFact::operator += (CNumber Value) const
+{
+    return {*this, EOperator::addition, Value};
+}
+
+SFactOperation CNumericFact::operator -= (CNumber Value) const
+{
+    return {*this, EOperator::addition, -Value};
+}
+
+SFactOperation CNumericFact::operator *= (CNumber Value) const
+{
+    return {*this, EOperator::multiplication, Value};
+}
+
+SFactOperation CNumericFact::operator /= (CNumber Value) const
+{
+    return {*this, EOperator::multiplication, 1 / Value};
+}
+///////////////////////////////////////////////////////////////////////////////////////////////////
+CFactDefinition::CFactDefinition(CNumber BaseRelationCost, CNumber Tolerance)
+    : mBaseRelationCost(BaseRelationCost)
+    , mTolerance(Tolerance)
+{
+    assert(BaseRelationCost > 0);
+    assert(Tolerance >= 0);
+}
+
+bool CFactDefinition::HasAnyRange() const
+{
+    for (const auto& Fact : mFacts)
+    {
+        if (Fact->GetRange().IsAnyBounded())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+std::string CFactDefinition::StringizeBoundedRanges() const
+{
+    std::string Return;
+    bool Successive = false;
 
     for (const auto& Fact : mFacts)
     {
-        if (!Fact->GetRange().IsBounded())
+        if (!Fact->GetRange().IsAnyBounded())
         {
             continue;
         }
 
-        if (First)
+        if (Successive)
         {
-            First = false;
+            Return += ", ";
         }
         else
         {
-            Stream << ", ";
+            Successive = true;
         }
 
-        Stream << Fact->GetRange().ToString(Fact->GetName());
+        Return += Fact->GetRange().Stringize(Fact->GetName());
     }
 
-    return Stream.str();
+    return Return;
 }
 
-bool CStateDefinition::ValidateDefinitionParameters(const std::string& Name, EFactType Type, SInterval& Range, CHeuristicFunctor& HeuristicFunctor)
+bool CFactDefinition::ValidateDefinitionParameters(const std::string& Name, EFactType Type, SSegment& Range, CHeuristicFunctor& HeuristicFunctor)
 {
-    assert(Type == EFactType::boolean || Type == EFactType::enumeration || Type == EFactType::number);
-
-    if (mNameMap.find(Name) != mNameMap.end()) // Redifinition is disallowed.
+    if (mNameMap.find(Name) != mNameMap.end())
     {
-        return false;
+        return false; // Redifinition is disallowed.
     }
 
-    if (!Range)
+    if (Range.IsUnset())
     {
-        Range = SInterval::Boundless; // Replace unset range with boundless interval
+        Range = SSegment::Boundless; // Replace the unset range with an unbounded segment.
     }
 
     if (Range.IsEmpty())
@@ -158,69 +140,77 @@ bool CStateDefinition::ValidateDefinitionParameters(const std::string& Name, EFa
 
     if (!HeuristicFunctor)
     {
-        HeuristicFunctor = GenerateHeuristicFunctor(Type, 1); // Replace unset distance functor with default one
+        HeuristicFunctor = GenerateHeuristicFunctor(Type, 1); // Replace the unset distance functor with a default one.
     }
 
     return true;
 }
 
-CBooleanFact* CStateDefinition::DefineBoolean(const std::string& Name)
+CBooleanFact* CFactDefinition::DefineBoolean(const std::string& Name)
 {
-    return Define<CBooleanFact>(Name, EFactType::boolean);
+    return Define<CBooleanFact>(Name);
 }
 
-CFact* CStateDefinition::DefineEnumeration(const std::string& Name, const SInterval& Range)
+CEnumerationFact* CFactDefinition::DefineEnumeration(const std::string& Name, const SSegment& Range)
 {
-    return Define<CFact>(Name, EFactType::enumeration, Range);
+    return Define<CEnumerationFact>(Name, Range);
 }
 
-CNumericFact* CStateDefinition::DefineNumber(const std::string& Name, const SInterval& Range, SNumber DistanceWeight)
+CNumericFact* CFactDefinition::DefineNumber(const std::string& Name, const SSegment& Range, CNumber GapWeight)
 {
-    CHeuristicFunctor HeuristicFunctor = GenerateHeuristicFunctor(EFactType::number, DistanceWeight);
-    return Define<CNumericFact>(Name, EFactType::number, Range, HeuristicFunctor);
+    CHeuristicFunctor HeuristicFunctor = GenerateHeuristicFunctor(EFactType::number, GapWeight);
+    return Define<CNumericFact>(Name, Range, HeuristicFunctor);
 }
 
-CNumericFact* CStateDefinition::DefineNumber(const std::string& Name, SNumber DistanceWeight, const SInterval& Range)
+CNumericFact* CFactDefinition::DefineNumber(const std::string& Name, CNumber GapWeight, const SSegment& Range)
 {
-    return DefineNumber(Name, Range, DistanceWeight);
+    return DefineNumber(Name, Range, GapWeight);
 }
 
-CNumericFact* CStateDefinition::DefineNumber(const SVariableRange& Range, SNumber DistanceWeight)
+CNumericFact* CFactDefinition::DefineNumber(const SVariableRange& Range, CNumber GapWeight)
 {
-    return DefineNumber(Range.Subject.Name, SInterval(Range.Minimum, Range.Maximum), DistanceWeight);
+    return DefineNumber(Range.Subject.Name, SSegment(Range.Minimum, Range.Maximum), GapWeight);
 }
 
-CNumericFact* CStateDefinition::DefineNumber(const SVariableRange& Range, const CHeuristicFunctor& HeuristicFunctor)
+CNumericFact* CFactDefinition::DefineNumber(const SVariableRange& Range, const CHeuristicFunctor& HeuristicFunctor)
 {
-    return Define<CNumericFact>(Range.Subject.Name, EFactType::number, SInterval(Range.Minimum, Range.Maximum), HeuristicFunctor);
+    return Define<CNumericFact>(Range.Subject.Name, SSegment(Range.Minimum, Range.Maximum), HeuristicFunctor);
 }
 
-CHeuristicFunctor CStateDefinition::GenerateHeuristicFunctor(EFactType Type, SNumber DistanceWeight)
+CHeuristicFunctor CFactDefinition::GenerateHeuristicFunctor(EFactType Type, CNumber GapWeight)
 {
-    const SNumber BaseCost = mBaseCost;
+    assert(GapWeight > 0.f);
+    assert(GapWeight.IsFinite());
 
     switch (Type)
     {
     case EFactType::boolean:
     case EFactType::enumeration:
-        return [BaseCost](const SInterval& Source, const SInterval& Aim) 
+        return [&](const SSegment& Source, const SSegment& Target)
         {
-            return Source.HasIntersection(Aim) ? SNumber(0) : BaseCost; 
+            return Source.HasIntersection(Target, mTolerance) ? 0_n : mBaseRelationCost;
         };
 
     case EFactType::number:
-        return [DistanceWeight](const SInterval& Source, const SInterval& Aim)
+        return [&, GapWeight](const SSegment& Source, const SSegment& Target)
         { 
-            SNumber Result = Source.GetGap(Aim);
-            Result *= DistanceWeight;
-            return Result;
+            CNumber Gap = Source.GetGap(Target, mTolerance);
+            if (Gap.IsFinite())
+            {
+                return Gap * GapWeight;
+            }
+            else
+            {
+                return mBaseRelationCost;
+            }
         };
     }
 
+    assert(!"Invalid fact type");
     return CHeuristicFunctor();
 }
 
-const CFact* CStateDefinition::GetFact(int Index) const
+const CFact* CFactDefinition::GetFact(int Index) const
 {
     if (Index >= 0 && Index < mFacts.size())
     {
@@ -232,7 +222,7 @@ const CFact* CStateDefinition::GetFact(int Index) const
     }
 }
 
-const CFact* CStateDefinition::GetFact(const std::string& Name) const
+const CFact* CFactDefinition::GetFact(const std::string& Name) const
 {
     auto it = mNameMap.find(Name);
     if (it == mNameMap.end())
@@ -245,40 +235,42 @@ const CFact* CStateDefinition::GetFact(const std::string& Name) const
     }
 }
 
-SNumber CStateDefinition::GetHeuristicCost(const CState& SourceState, const CState& DesiredState) const
+CNumber CFactDefinition::GetHeuristicCost(const CState& SourceState, const CState& DesiredState) const
 {
     assert(&SourceState.GetDefinition() == this);
     assert(&DesiredState.GetDefinition() == this);
 
-    SNumber Result(0);
+    CNumber Return = 0;
 
     for (const auto& Fact : mFacts)
     {
-        const int Index = Fact->GetIndex();
-        const SInterval& Aim = DesiredState.GetFact(Index);
-        if (!Aim)
+        const int FactIndex = Fact->GetIndex();
+        const SSegment& Target = DesiredState.GetProperty(FactIndex);
+        if (Target.IsUnset())
         {
             continue;
         }
 
-        if (const SInterval& Source = SourceState.GetFact(Index))
+        const SSegment& Source = SourceState.GetProperty(FactIndex);
+        if (Source.IsSet())
         {
-            Result += Fact->GetHeuristicFunctor()(Source, Aim);
+            Return += Fact->GetHeuristicFunctor()(Source, Target);
         }
         else
         {
-            Result += mBaseCost;
+            Return += mBaseRelationCost;
         }
     }
 
-    return Result;
+    return Return;
 }
 
-void CStateDefinition::Clamp(CState& State) const
+void CFactDefinition::Clamp(CState& State) const
 {
     for (const auto& Fact : mFacts)
     {
-        if (SInterval& Target = State.GetFact(Fact->GetIndex()))
+        SSegment& Target = State.GetProperty(Fact->GetIndex());
+        if (Target.IsSet())
         {
             Fact->GetRange().Clamp(Target);
         }

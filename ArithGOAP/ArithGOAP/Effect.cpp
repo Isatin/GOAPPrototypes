@@ -1,12 +1,11 @@
 ﻿// Copyright 2024 Isaac Hsu
 
 #include <cassert>
-#include <sstream>
 
 #include "Effect.h"
 #include "Fact.h"
-#include "Interval.h"
 #include "Notation.h"
+#include "Segment.h"
 #include "State.h"
 
 
@@ -16,50 +15,47 @@ const CTransform CTransform::Nil;
 
 std::string CTransform::ToString() const
 {
-    std::stringstream Stream;
-    Stream << Operator.GetSymbol() << Operand;
-    return Stream.str();
+    std::string Return = Operator.GetSymbol();
+    Return += Operand.ToString();
+    return Return;
 }
 
-std::string CTransform::ToString(const std::string& Subject) const
+std::string CTransform::Stringize(const std::string& Subject) const
 {
-    std::stringstream Stream;
-
-    Stream << Operator.ToString(Subject);
+    std::string Return = Operator.Stringize(Subject);
     if (Operator.GetArity() >= 2)
     {
-        Stream << Operand;
+        Return += Operand.ToString(); // Print the right operand if there is more than one operand.
     }
-
-    return Stream.str();
+    return Return;
 }
 
-void CTransform::ApplyTo(SNumber& Number) const
+void CTransform::ApplyTo(CNumber& oNumber) const
 {
     switch (Operator)
     {
-    case EOperator::assign:         Number = Operand; break;
-    case EOperator::negation:       Number = !Number; break;
-    case EOperator::addition:       Number += Operand; break;
-    case EOperator::multiplication: Number *= Operand; break;
+    case EOperator::assignment:     oNumber = Operand; break;
+    case EOperator::negation:       oNumber = !oNumber; break;
+    case EOperator::addition:       oNumber += Operand; break;
+    case EOperator::multiplication: oNumber *= Operand; break;
     }
 }
 
-void CTransform::ApplyTo(SInterval& Interval) const
+void CTransform::ApplyTo(SSegment& oSegment) const
 {
-    if (Interval.Maximum == Interval.Minimum)
+    if (oSegment.Maximum == oSegment.Minimum)
     {
-        ApplyTo(Interval.Minimum);
-        Interval.Maximum = Interval.Minimum;
+        ApplyTo(oSegment.Minimum);
+        oSegment.Maximum = oSegment.Minimum;
     }
     else
     {
-        ApplyTo(Interval.Minimum);
-        ApplyTo(Interval.Maximum);
+        ApplyTo(oSegment.Minimum);
+        ApplyTo(oSegment.Maximum);
     }
 }
 
-ETriStateCompletion CTransform::Neutralize(SInterval& Target, const SInterval& Range) const
+ETriStateCompletion CTransform::Reserve(SSegment& oTarget, const SSegment& Range, CNumber Tolerance) const
 {
     if (!Operand.IsFinite())
     {
@@ -68,14 +64,14 @@ ETriStateCompletion CTransform::Neutralize(SInterval& Target, const SInterval& R
 
     switch (Operator)
     {
-    case EOperator::assign:
-        return Target.Contain(Operand) && Range.Contain(Operand) ? ETriStateCompletion::complete : ETriStateCompletion::failed;
+    case EOperator::assignment:
+        return oTarget.Contain(Operand, Tolerance) && Range.Contain(Operand, Tolerance) ? ETriStateCompletion::complete : ETriStateCompletion::failed;
 
     case EOperator::negation:
-        if (Target.IsDegenerate())
-        {
-            Target = (Target.Minimum == 0);
-            return Target.Intersect(Range) ? ETriStateCompletion::partial : ETriStateCompletion::failed;
+        if (oTarget.IsDegenerate(Tolerance))
+        {            
+            oTarget = !oTarget.Minimum; // ¬x==B ⇒ x==¬B
+            return oTarget.Intersect(Range, Tolerance) ? ETriStateCompletion::partial : ETriStateCompletion::failed;
         }
         else
         {
@@ -84,22 +80,22 @@ ETriStateCompletion CTransform::Neutralize(SInterval& Target, const SInterval& R
 
     case EOperator::addition:
     case EOperator::multiplication:
-        if (!Range.Unclamp(Target))
+        if (!Range.Unclamp(oTarget, Tolerance))
         {
             return ETriStateCompletion::failed;
         }
 
         if (Operator == EOperator::addition)
         {
-            Target -= Operand;
+            oTarget -= Operand;
         }
         else if (Operator == EOperator::multiplication)
         {
-            if (Operand == 0)
+            if (Operand.IsEquivalent(0, Tolerance))
             {          
-                if (Target.Contain(0))
+                if (oTarget.Contain(0, Tolerance))
                 {
-                    Target = SInterval::Boundless; // Any number multiplied by zero is zero.
+                    oTarget = SSegment::Boundless; // Any number multiplied by zero equals zero.
                     return ETriStateCompletion::partial;
                 }
                 else
@@ -109,25 +105,20 @@ ETriStateCompletion CTransform::Neutralize(SInterval& Target, const SInterval& R
             }
             else
             {
-                Target /= Operand;
-
-                if (Operand < 0)
-                {
-                    Target.Flip();
-                }
+                oTarget /= Operand;
             }
         }
 
-        return Target.Intersect(Range) ? ETriStateCompletion::partial : ETriStateCompletion::failed;
+        return oTarget.Intersect(Range, Tolerance) ? ETriStateCompletion::partial : ETriStateCompletion::failed;
     }
 
     return ETriStateCompletion::failed;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CEffect::CEffect(const CStateDefinition& Def)
-    : mDefinition(Def) 
+CEffect::CEffect(const CFactDefinition& Definition)
+    : mDefinition(Definition) 
 {
-    Expand(Def.GetFactAmount());
+    Expand(Definition.GetFactCount());
 }
 
 void CEffect::Expand(int Size)
@@ -140,35 +131,35 @@ void CEffect::Expand(int Size)
 
 std::string CEffect::ToString() const
 {
-    std::stringstream Stream;
-    bool First = true;
+    std::string Return;
+    bool Successive = false;
 
-    for (int i = 0; i < mTransforms.size(); i++)
-    {        
-        if (const CTransform& Transform = mTransforms[i])
+    for (int FactIndex = 0; FactIndex < mTransforms.size(); FactIndex++)
+    {       
+        const CTransform& Transform = mTransforms[FactIndex];
+        if (!Transform.IsNil())
         {
-            if (First)
+            if (Successive)
             {
-                First = false;
+                Return += ", ";
             }
             else
             {
-                Stream << ", ";
+                Successive = true;
             }
 
-            const std::string& Name = GetDefinition().GetFact(i)->GetName();
-            Stream << mTransforms[i].ToString(Name);
+            const std::string& FactName = GetDefinition().GetFact(FactIndex)->GetName();
+            Return += mTransforms[FactIndex].Stringize(FactName);
         }
     }
 
-    return Stream.str();
+    return Return;
 }
 
-bool CEffect::IsNil() const
+bool CEffect::IsEmpty() const
 {
-    for (int i = 0; i < mTransforms.size(); i++)
+    for (const CTransform& Transform : mTransforms)
     {
-        const CTransform& Transform = mTransforms[i];
         if (Transform.GetOperator() != EOperator::nil)
         {
             return false;
@@ -178,13 +169,12 @@ bool CEffect::IsNil() const
     return true;
 }
 
-int CEffect::GetTransformCount() const
+int CEffect::CountTransforms() const
 {
     int Count = 0;
 
-    for (int i = 0; i < mTransforms.size(); i++)
+    for (const CTransform& Transform : mTransforms)
     {
-        const CTransform& Transform = mTransforms[i];
         if (Transform.GetOperator() != EOperator::nil)
         {
             Count++;
@@ -201,11 +191,11 @@ const CTransform& CEffect::GetTransform(const CFact& Fact) const
     return GetTransform(Fact.GetIndex());
 }
 
-const CTransform& CEffect::GetTransform(int Index) const
+const CTransform& CEffect::GetTransform(int FactIndex) const
 {
-    if (Index < mTransforms.size())
+    if (FactIndex >= 0 && FactIndex < mTransforms.size())
     {
-        return mTransforms[Index];
+        return mTransforms[FactIndex];
     }
     else
     {
@@ -227,8 +217,8 @@ bool CEffect::SetTransform(const CFact& Fact, const CTransform& Transform)
     case EOperator::nil:
         return false;
 
-    case EOperator::assign:
-        if (!Fact.GetRange().Contain(Transform.GetOperand()))
+    case EOperator::assignment:
+        if (!Fact.GetRange().Contain(Transform.GetOperand(), mDefinition.GetTolerance()))
         {
             return false;
         }
@@ -240,9 +230,9 @@ bool CEffect::SetTransform(const CFact& Fact, const CTransform& Transform)
     return true;
 }
 
-bool CEffect::SetTransform(const CFact& Fact, SNumber Value)
+bool CEffect::SetTransform(const CFact& Fact, CNumber Value)
 {
-    return SetTransform(Fact, CTransform(EOperator::Assign, Value));
+    return SetTransform(Fact, CTransform(EOperator::assignment, Value));
 }
 
 bool CEffect::SetTransform(const SFactOperation& Operation)
@@ -250,35 +240,26 @@ bool CEffect::SetTransform(const SFactOperation& Operation)
     return SetTransform(Operation.Subject, CTransform(Operation.Operator, Operation.Operand));
 }
 
-bool CEffect::SetTransform(const SBooleanFactOperation& Operation)
-{
-    return SetTransform(Operation.Subject, CTransform(Operation.Operator, Operation.Operand));
-}
-
-bool CEffect::SetTransform(const SNumericFactOperation& Operation)
-{ 
-    return SetTransform(Operation.Subject, CTransform(Operation.Operator, Operation.Operand));
-}
-
 void CEffect::ApplyTo(CState& State) const
 {
     assert(&State.GetDefinition() == &mDefinition);
 
-    for (int i = 0; i < mTransforms.size(); i++)
+    for (int FactIndex = 0; FactIndex < mTransforms.size(); FactIndex++)
     {
-        const CTransform& Transform = mTransforms[i];
-        if (SInterval& Interval = State.GetFact(i))
+        const CTransform& Transform = mTransforms[FactIndex];
+        SSegment& Property = State.GetProperty(FactIndex);
+        if (Property.IsSet())
         {
-            Transform.ApplyTo(Interval);
+            Transform.ApplyTo(Property);
 
-            if (const CFact* Fact = mDefinition.GetFact(i))
+            if (const CFact* Fact = mDefinition.GetFact(FactIndex))
             {
-                Fact->GetRange().Clamp(Interval);
+                Fact->GetRange().Clamp(Property);
             }
         }
-        else if (Transform.GetOperator() == EOperator::assign)
+        else if (Transform.GetOperator() == EOperator::assignment)
         {
-            State.SetFact(i, Transform.GetOperand());
+            State.SetProperty(FactIndex, Transform.GetOperand());
         }
     }
 }

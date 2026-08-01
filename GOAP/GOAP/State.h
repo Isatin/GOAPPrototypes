@@ -11,37 +11,43 @@
 namespace GOAP
 {
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    using PFact = int; // Primitive type of fact value
+    using BProperty = int; // The value type of world properties
     ///////////////////////////////////////////////////////////////////////////////////////////////    
-    class CState // World state supporting Boolean and enumerations    
+    class CState // World state storing Boolean and enumeration properties    
     {
     public:     
         virtual ~CState() {}
         virtual std::unique_ptr<CState> Clone() const { return std::make_unique<CState>(*this); }
-        virtual std::string ToString() const; // For debug
+        virtual std::string ToString() const; // For debugging
+        virtual std::string Stringize(const CState& Another) const; // For debugging
         virtual float GetExtraHeuristicCost(const CState& Another) const { return 0.f; } // Custom heuristic cost
 
-        auto begin() { return mFactMap.begin(); }
-        auto begin() const { return mFactMap.begin(); }
-        auto end() { return mFactMap.end(); }
-        auto end() const { return mFactMap.end(); }
+        auto begin()        { return mPropertyMap.begin(); }
+        auto begin() const  { return mPropertyMap.begin(); }
+        auto end()          { return mPropertyMap.end(); }
+        auto end() const    { return mPropertyMap.end(); }
 
-        // World properties are call facts here.
-        int GetFactCount() const { return (int) mFactMap.size(); }
-        std::optional<PFact> GetFact(const std::string& Key) const;
-        void SetFact(const std::string& Key, PFact Value);
+        int GetPropertyCount() const { return static_cast<int>(mPropertyMap.size()); }
+        std::optional<BProperty> GetProperty(const std::string& Name) const;
+        void SetProperty(const std::string& Name, BProperty Value);
 
-        // Check if the facts match the other state's. The other could have more Facts.
+        // Are there no properties set in this state?
+        bool IsEmpty() const { return mPropertyMap.empty(); }
+        // Do all properties in this state match another?
         bool IsSatisfiedBy(const CState& Another) const;
-        // How many different facts from the other state?
-        int GetUnsatisfactionCount(const CState& Another) const;
-        // Copy the facts to the other state
+        // How many properties in this state differ from those in another?
+        int CountUnsatisfiedProperties(const CState& Another) const;
+        // Copy the properties to another state.
         void Overwrite(CState& Another) const;
-        // Remove the facts equal to the other state's
+        // Copy the property values from the source if those properties exist in the filter.
+        void CopyProperties(const CState& Source, const CState& Filter);
+        // Initialize unset properties from the source if they exist in the filter.
+        void InitializeProperties(const CState& Source, const CState& Filter);
+        // Remove properties that match the other state's.
         void RemoveMatch(const CState& Another);
 
     private:
-        std::unordered_map<std::string, PFact> mFactMap;
+        std::unordered_map<std::string, BProperty> mPropertyMap;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
 }

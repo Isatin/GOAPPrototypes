@@ -1,7 +1,7 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows a common scenario in game where the agent needs to get enough resources 
-// in several ways for something. In this case, it can take three actions to make money for a house.
+// This example shows a common scenario in games where an agent must gather resources using various 
+// methods for a task. In this case, it has three actions to earn enough money to buy a house.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -12,41 +12,41 @@ using VAR = ArithGOAP::SVariable;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
-    const auto& BalanceFact = *Definition.DefineNumber(VAR("Balance") >= 0, 0.001);
-    const auto& CreditFact  = *Definition.DefineNumber("Credit", 0.01);
-    const auto& HouseFact   = *Definition.DefineNumber("House");
+    CFactDefinition Definition;
+    const auto& Balance = *Definition.DefineNumber(VAR("Balance") >= 0, 0.001);
+    const auto& Credit  = *Definition.DefineNumber("Credit", 0.01);
+    const auto& House   = *Definition.DefineNumber("House");
 
     CState StartingState(Definition);
-    StartingState.SetFact(BalanceFact == 10);
-    StartingState.SetFact(CreditFact == 0);
-    StartingState.SetFact(HouseFact == 0);
+    StartingState.SetProperty(Balance == 10);
+    StartingState.SetProperty(Credit == 0);
+    StartingState.SetProperty(House == 0);
     
     CState GoalState(Definition);
-    GoalState.SetFact(HouseFact >= 1);
+    GoalState.SetProperty(House >= 1);
 
     std::vector<CAction> Actions;
     {
         CAction& BuyHouse = Actions.emplace_back("BH", Definition);
-        BuyHouse.SetPrecondition(BalanceFact >= 1000);
-        BuyHouse.SetEffect(BalanceFact -= 1000);
-        BuyHouse.SetEffect(HouseFact += 1);
+        BuyHouse.SetPrecondition(Balance >= 1000);
+        BuyHouse.SetEffect(Balance -= 1000);
+        BuyHouse.SetEffect(House += 1);
     }
     {
         CAction& Work = Actions.emplace_back("W", Definition);
-        Work.SetEffect(BalanceFact += 100);
-        Work.SetEffect(CreditFact += 10);
+        Work.SetEffect(Balance += 100);
+        Work.SetEffect(Credit += 10);
     }
     {
         CAction& RunShop = Actions.emplace_back("RS", Definition);
-        RunShop.SetPrecondition(CreditFact >= 0);
-        RunShop.SetEffect(BalanceFact += 300);
+        RunShop.SetPrecondition(Credit >= 0);
+        RunShop.SetEffect(Balance += 300);
     }
     {
         CAction& GetLoan = Actions.emplace_back("GL", Definition);
-        GetLoan.SetPrecondition(CreditFact >= 0);
-        GetLoan.SetEffect(CreditFact -= 70);
-        GetLoan.SetEffect(BalanceFact += 700);
+        GetLoan.SetPrecondition(Credit >= 0);
+        GetLoan.SetEffect(Credit -= 70);
+        GetLoan.SetEffect(Balance += 700);
     }
 
     RunGOAPs(StartingState, GoalState, Actions);

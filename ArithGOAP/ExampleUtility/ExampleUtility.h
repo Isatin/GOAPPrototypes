@@ -9,6 +9,6 @@
 #include "ArithGOAP/Notation.h"
 
 
-// Utility functions to run all GOAP planners
+// Utility functions to run GOAP planners
 void RunGOAPs(const ArithGOAP::CState& StartingState, const ArithGOAP::CState& GoalState, const std::vector<ArithGOAP::CAction>& Actions, int MaxDepth = 0);
 void RunGOAPs(const ArithGOAP::CState& StartingState, const ArithGOAP::CState& GoalState, const std::vector<const ArithGOAP::CAction*>& Actions, int MaxDepth = 0);

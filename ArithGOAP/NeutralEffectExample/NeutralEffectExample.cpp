@@ -1,7 +1,7 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is two test cases with ineffective/unsatisfying actions and they will fail.
-// Regressive GOAP with lookup tables will rule out these actions during search.
+// This test case fails the goal with ineffective and unsatisfactory actions.
+// Advanced regressive GOAP can rule out these actions with lookup tables during search.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -11,36 +11,35 @@ using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
-    const auto& NumberFact = *Definition.DefineNumber("Number");
+    CFactDefinition Definition;
+    const auto& X = *Definition.DefineNumber("X");
 
     CState StartingState(Definition);
-    StartingState.SetFact(NumberFact, 1);
+    StartingState.SetProperty(X, 1);
 
     CState GoalState(Definition);
-    GoalState.SetFact(NumberFact >= 2);
+    GoalState.SetProperty(X >= 2);
 
     std::vector<CAction> Actions;
+    // An ineffective action with an effect equal to the additive identity
     {
-        CAction& AddZero = Actions.emplace_back("+0", Definition);
-        AddZero.SetEffect(NumberFact += 0);
+        CAction& PlusZero = Actions.emplace_back("+0", Definition);
+        PlusZero.SetEffect(X += 0);
     }
+    // An ineffective action with an effect equal to the multiplicative identity
     {
         CAction& TimesOne = Actions.emplace_back("*1", Definition);
-        TimesOne.SetEffect(NumberFact *= 1);
+        TimesOne.SetEffect(X *= 1);
     }  
-    // Only ineffective actions
-    RunGOAPs(StartingState, GoalState, Actions);
-
-    // Unsatisfying effect 
+    // An unsatisfactory action with an effect of multiplying by zero
     {
         CAction& TimesZero = Actions.emplace_back("*0", Definition);
-        TimesZero.SetEffect(NumberFact *= 0);
+        TimesZero.SetEffect(X *= 0);
     }
-    //// Satisfying effect 
+    //// A satisfactory action
     //{
     //    CAction& Two = Actions.emplace_back("=2", Definition);
-    //    Two.SetEffect(NumberFact = 2);
+    //    Two.SetEffect(X = 2);
     //}
     RunGOAPs(StartingState, GoalState, Actions);
 

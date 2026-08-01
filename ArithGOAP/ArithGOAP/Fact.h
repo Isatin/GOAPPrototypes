@@ -4,24 +4,19 @@
 
 #include <functional>
 #include <memory>
-#include <string>
 #include <unordered_map>
 
-#include "Interval.h"
+#include "Segment.h"
 
 
 namespace ArithGOAP
 {
-    using CHeuristicFunctor = std::function<SNumber(const SInterval&, const SInterval&)>;
+    using CHeuristicFunctor = std::function<CNumber(const SSegment&, const SSegment&)>;
     class CState;
-    struct SBooleanFactOperation;
     struct SFactOperation;
-    struct SFactRange;
-    struct SNumericFactOperation;
-    struct SNumericFactRange;
     struct SVariableRange;
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    enum class EFactType
+    enum class EFactType // Enum class of fact types
     {
         none,
         boolean,
@@ -29,124 +24,137 @@ namespace ArithGOAP
         number,
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CFact // Definition of a world property. Fact values are stored in the state class.
+    class CFact // Base class for a world property definition. Fact values are stored in world states.
     {
         friend class CBooleanFact;
+        friend class CEnumerationFact;
+        friend class CFactDefinition;
         friend class CNumericFact;
-        friend class CStateDefinition;
     public:
-        virtual ~CFact() {}
+        virtual ~CFact() = 0 {}
 
         const std::string& GetName() const { return mName; }
         EFactType GetType() const { return mType; }
-        int GetIndex() const { return mIndex; } // Index of this fact in fact list of the owner
-        const SInterval& GetRange() const { return mRange; }
-        void SetRange(const SInterval& Value) { mRange = Value; }
+        int GetIndex() const { return mIndex; } // Index of this fact in the owner's fact list
+        const SSegment& GetRange() const { return mRange; }
+        void SetRange(const SSegment& Value) { mRange = Value; }
         const CHeuristicFunctor& GetHeuristicFunctor() const { return mHeuristicFunctor; }
         void SetHeuristicFunctor(const CHeuristicFunctor& Value) { mHeuristicFunctor = Value; }
-        void SetDistanceWeight(SNumber DistanceWeight);
-        const CStateDefinition& GetOwner() const { return mOwner; }
-
-        SFactRange operator == (SNumber Value) const;
-        SFactOperation operator = (SNumber Value) const;
+        void SetGapWeight(CNumber GapWeight);
+        const CFactDefinition& GetOwner() const { return mOwner; }
 
     private:
-        CFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor);
+        CFact(CFactDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor);
 
     private:
         std::string mName;
         EFactType mType = EFactType::none;
         int mIndex = -1;
-        SInterval mRange;
+        SSegment mRange;
         CHeuristicFunctor mHeuristicFunctor;
-        CStateDefinition& mOwner;
+        CFactDefinition& mOwner;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CBooleanFact : public CFact // Boolean fact to define operations using C++ operators
+    class CBooleanFact : public CFact // Boolean fact used to define preconditions and effects with C++ operators
     {
-        friend class CStateDefinition;
+        friend class CFactDefinition;
     public:
-        SBooleanFactOperation operator = (SNumber Value) const;
-        SBooleanFactOperation operator ! () const;
+        SFactOperation operator = (bool Value) const;
 
     private:
-        CBooleanFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor);
+        CBooleanFact(CFactDefinition& Owner, int Index, const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor);
+
+    public:
+        static constexpr EFactType StaticFactType = EFactType::boolean;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CNumericFact : public CFact // Numeric fact to define ranges/operations using C++ operators
+    class CEnumerationFact : public CFact // Enumeration fact used to define preconditions and effects with C++ operators
     {
-        friend class CStateDefinition;
+        friend class CFactDefinition;
     public:
-        SNumericFactRange operator == (SNumber Value) const;
-        SNumericFactRange operator <= (SNumber Value) const;
-        SNumericFactRange operator >= (SNumber Value) const;
-        friend SNumericFactRange operator <= (SNumber Value, const CNumericFact& Fact);
-        friend SNumericFactRange operator >= (SNumber Value, const CNumericFact& Fact);
-
-        SNumericFactOperation operator = (SNumber Value) const;
-        SNumericFactOperation operator += (SNumber Value) const;
-        SNumericFactOperation operator -= (SNumber Value) const;
-        SNumericFactOperation operator *= (SNumber Value) const;
-        SNumericFactOperation operator /= (SNumber Value) const;
-
-        SNumericFactOperation operator - () const;
+        SFactOperation operator = (int Value) const;
 
     private:
-        CNumericFact(CStateDefinition& Owner, int Index, const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor);
+        CEnumerationFact(CFactDefinition& Owner, int Index, const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor);
+
+    public:
+        static constexpr EFactType StaticFactType = EFactType::enumeration;
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
-    class CStateDefinition // Collection of fact definitions
+    class CNumericFact : public CFact // Numeric fact for used to define preconditions and effects with C++ operators
+    {
+        friend class CFactDefinition;
+    public:
+        SFactOperation operator = (CNumber Value) const;
+        SFactOperation operator += (CNumber Value) const;
+        SFactOperation operator -= (CNumber Value) const;
+        SFactOperation operator *= (CNumber Value) const;
+        SFactOperation operator /= (CNumber Value) const;
+
+    private:
+        CNumericFact(CFactDefinition& Owner, int Index, const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor);
+
+    public:
+        static constexpr EFactType StaticFactType = EFactType::number;
+    };
+    ///////////////////////////////////////////////////////////////////////////////////////////////
+    class CFactDefinition // Collection of fact definitions
     {
         friend CFact;
     public:
-        explicit CStateDefinition(SNumber BaseCost = 1) : mBaseCost(BaseCost) {}
+        explicit CFactDefinition(CNumber BaseRelationCost = 1, CNumber Tolerance = CNumber::DefaultTolerance);
 
-        std::string StringizeBoundedRanges() const; // For debug
+        std::string StringizeBoundedRanges() const; // For debugging
 
-        auto begin() { return mFacts.begin(); }
-        auto begin() const { return mFacts.begin(); }
-        auto end() { return mFacts.end(); }
-        auto end() const { return mFacts.end(); }
+        auto begin()        { return mFacts.begin(); }
+        auto begin() const  { return mFacts.begin(); }
+        auto end()          { return mFacts.end(); }
+        auto end() const    { return mFacts.end(); }
 
         CBooleanFact* DefineBoolean(const std::string& Name);
-        CFact* DefineEnumeration(const std::string& Name, const SInterval& Range = SInterval::Boundless);
-        CNumericFact* DefineNumber(const std::string& Name, const SInterval& Range = SInterval::Boundless, SNumber DistanceWeight = 1);
-        CNumericFact* DefineNumber(const std::string& Name, SNumber DistanceWeight, const SInterval& Range = SInterval::Boundless);
-        CNumericFact* DefineNumber(const SVariableRange& Range, SNumber DistanceWeight = 1);
+        CEnumerationFact* DefineEnumeration(const std::string& Name, const SSegment& Range = SSegment::Boundless);
+        CNumericFact* DefineNumber(const std::string& Name, const SSegment& Range = SSegment::Boundless, CNumber GapWeight = 1);
+        CNumericFact* DefineNumber(const std::string& Name, CNumber GapWeight, const SSegment& Range = SSegment::Boundless);
+        CNumericFact* DefineNumber(const SVariableRange& Range, CNumber GapWeight = 1);
         CNumericFact* DefineNumber(const SVariableRange& Range, const CHeuristicFunctor& HeuristicFunctor);
 
-        int GetFactAmount() const { return (int) mFacts.size(); }
+        int GetFactCount() const { return static_cast<int>(mFacts.size()); }
         const CFact* GetFact(int Index) const;
         const CFact* GetFact(const std::string& Name) const;
 
-        // Calculate heuristic cost from the source state to desired state
-        SNumber GetHeuristicCost(const CState& SourceState, const CState& DesiredState) const;
-        // Clamp the given state by range definition
+        // Do any facts have a lower or upper bound? 
+        bool HasAnyRange() const;
+        CNumber GetBaseRelationCost() const { return mBaseRelationCost; }        
+        CNumber GetTolerance() const { return mTolerance; }
+        // Calculate the heuristic cost from the source state to the desired state.
+        CNumber GetHeuristicCost(const CState& SourceState, const CState& DesiredState) const;
+        // Clamp a given state to these fact ranges.
         void Clamp(CState& State) const;
 
     private:
         template <typename TFact>
-        TFact* Define(const std::string& Name, EFactType Type, const SInterval& Range = SInterval::Boundless, const CHeuristicFunctor& HeuristicFunctor = CHeuristicFunctor());
-        bool ValidateDefinitionParameters(const std::string& Name, EFactType Type, SInterval& Range, CHeuristicFunctor& HeuristicFunctor);
-        CHeuristicFunctor GenerateHeuristicFunctor(EFactType Type, SNumber DistanceWeight);
+        TFact* Define(const std::string& Name, const SSegment& Range = SSegment::Boundless, const CHeuristicFunctor& HeuristicFunctor = CHeuristicFunctor());
+        bool ValidateDefinitionParameters(const std::string& Name, EFactType Type, SSegment& Range, CHeuristicFunctor& HeuristicFunctor);
+        CHeuristicFunctor GenerateHeuristicFunctor(EFactType Type, CNumber GapWeight);
 
     private:
-        std::vector<std::unique_ptr<CFact>> mFacts;
-        std::unordered_map<std::string, int> mNameMap; // mappings from fact names to fact indices
-        SNumber mBaseCost = 1; // base cost of a mismatched fact
+        std::vector<std::unique_ptr<CFact>> mFacts; // Allocate the facts on the heap to ensure that existing facts are not invalidated by adding new on.
+        std::unordered_map<std::string, int> mNameMap; // Mapping of fact names to fact indexes
+        CNumber mBaseRelationCost = 1; // Base cost for a mismatched comparison
+        CNumber mTolerance = CNumber::DefaultTolerance; // Absolute tolerance used for floating-point comparison
     };
     ///////////////////////////////////////////////////////////////////////////////////////////////
     template <typename TFact>
-    TFact* CStateDefinition::Define(const std::string& Name, EFactType Type, const SInterval& Range, const CHeuristicFunctor& HeuristicFunctor)
+    TFact* CFactDefinition::Define(const std::string& Name, const SSegment& Range, const CHeuristicFunctor& HeuristicFunctor)
     {
-        SInterval ValidRange = Range;
+        SSegment ValidRange = Range;
         CHeuristicFunctor ValidHeuristicFunctor = HeuristicFunctor;
-        if (!ValidateDefinitionParameters(Name, Type, ValidRange, ValidHeuristicFunctor))
+        if (!ValidateDefinitionParameters(Name, TFact::StaticFactType, ValidRange, ValidHeuristicFunctor))
         {
             return nullptr;
         }
 
-        TFact* Fact = new TFact(*this, (int) mFacts.size(), Name, Type, ValidRange, ValidHeuristicFunctor);
+        TFact* Fact = new TFact(*this, static_cast<int>(mFacts.size()), Name, ValidRange, ValidHeuristicFunctor);
         mFacts.emplace_back(Fact);
         mNameMap.emplace(Name, Fact->GetIndex());
         return Fact;

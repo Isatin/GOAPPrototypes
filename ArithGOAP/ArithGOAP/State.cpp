@@ -1,7 +1,7 @@
 // Copyright 2024 Isaac Hsu
 
 #include <cassert>
-#include <sstream>
+#include <memory>
 
 #include "Fact.h"
 #include "Notation.h"
@@ -10,67 +10,55 @@
 
 using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CState::CState(const CStateDefinition& Def)
-    : mDefinition(Def)
+CState::CState(const CFactDefinition& Definition)
+    : mDefinition(Definition)
 { 
-    Expand(Def.GetFactAmount());
-}
-
-CState::CState(const CStateDefinition& Def, std::vector<SInterval>&& Facts)
-    : mDefinition(Def)
-    , mValues(Facts)
-{
+    Expand(Definition.GetFactCount());
 }
 
 void CState::Expand(int Size)
 {
-    if (Size > mValues.size())
+    if (Size > mProperties.size())
     {
-        mValues.resize(Size);
+        mProperties.resize(Size);
     }
-}
-
-std::unique_ptr<CState> CState::Clone() const
-{ 
-    auto Values = mValues;
-    return Clone(std::move(Values));
 }
 
 std::string CState::ToString() const
 {
-    std::stringstream Stream;
-    bool First = true;
+    std::string Return;
+    bool Successive = false;
 
-    for (int i = 0; i < mValues.size(); i++)
+    for (int FactIndex = 0; FactIndex < mProperties.size(); FactIndex++)
     {
-        const SInterval& Interval = mValues[i];
-        if (!Interval)
+        const SSegment& Segment = mProperties[FactIndex];
+        if (Segment.IsUnset())
         {
             continue;
         }
 
-        if (First)
+        if (Successive)
         {
-            First = false;
+            Return += ", ";
         }
         else
         {
-            Stream << ", ";
+            Successive = true;
         }
 
-        Stream << Interval.ToString(GetDefinition().GetFact(i)->GetName());
+        Return += Segment.Stringize(GetDefinition().GetFact(FactIndex)->GetName());
     }
 
-    return Stream.str();
+    return Return;
 }
 
-int CState::GetFactCount() const
+int CState::CountProperties() const
 {
     int Count = 0;
 
-    for (int i = 0; i < mValues.size(); i++)
+    for (const SSegment& Segment : mProperties)
     {
-        if (mValues[i])
+        if (Segment.IsSet())
         {
             Count++;
         }
@@ -79,103 +67,104 @@ int CState::GetFactCount() const
     return Count;
 }
 
-SInterval& CState::GetFact(int Index)
+SSegment& CState::GetProperty(int FactIndex)
 {
-    Expand(Index + 1);
-    return mValues[Index];
+    Expand(FactIndex + 1);
+    return mProperties[FactIndex];
 }
 
-SInterval& CState::GetFact(const CFact& Fact)
+SSegment& CState::GetProperty(const CFact& Fact)
 {
     assert(&Fact.GetOwner() == &mDefinition);
 
-    return GetFact(Fact.GetIndex());
+    return GetProperty(Fact.GetIndex());
 }
 
-const SInterval& CState::GetFact(int Index) const
+const SSegment& CState::GetProperty(int FactIndex) const
 {
-    if (Index < mValues.size())
+    if (FactIndex >= 0 && FactIndex < mProperties.size())
     {
-        return mValues[Index];
+        return mProperties[FactIndex];
     }
     else
     {
-        return SInterval::Empty;
+        return SSegment::Empty;
     }
 }
 
-const SInterval& CState::GetFact(const CFact& Fact) const
+const SSegment& CState::GetProperty(const CFact& Fact) const
 {
     assert(&Fact.GetOwner() == &mDefinition);
 
-    return GetFact(Fact.GetIndex());
+    return GetProperty(Fact.GetIndex());
 }
 
-bool CState::SetFact(int Index, const SInterval& Interval)
+bool CState::SetProperty(int FactIndex, const SSegment& Segment)
 {
-    Expand(Index + 1);
-    mValues[Index] = Interval;
+    Expand(FactIndex + 1);
+    mProperties[FactIndex] = Segment;
     return true;
 }
 
-bool CState::SetFact(const CFact& Fact, const SInterval& Interval)
+bool CState::SetProperty(const CFact& Fact, const SSegment& Segment)
 {
     assert(&Fact.GetOwner() == &mDefinition);
 
-    SInterval Intersection = Interval;
-    if (!Intersection.Intersect(Fact.GetRange()))
+    SSegment Intersection = Segment;
+    if (!Intersection.Intersect(Fact.GetRange(), mDefinition.GetTolerance()))
     {
         return false;
     }
 
-    return SetFact(Fact.GetIndex(), Intersection);
+    return SetProperty(Fact.GetIndex(), Intersection);
 }
 
-bool CState::SetFact(const CFact& Fact, SNumber Value)
+bool CState::SetProperty(const CFact& Fact, CNumber Value)
 {
-    return SetFact(Fact, SInterval(Value, Value));
+    return SetProperty(Fact, SSegment(Value, Value));
 }
 
-bool CState::SetFact(const SFactRange& Range)
+bool CState::SetProperty(const SFactEquation& Equation)
 {
-    return SetFact(Range.Subject, SInterval(Range.Minimum, Range.Maximum));
+    return SetProperty(Equation.Subject, SSegment(Equation.Value, Equation.Value));
 }
 
-bool CState::SetFact(const SNumericFactRange& Range)
+bool CState::SetProperty(const SNumericFactRange& Range)
 {
-    return SetFact(Range.Subject, SInterval(Range.Minimum, Range.Maximum));
+    return SetProperty(Range.Subject, SSegment(Range.Minimum, Range.Maximum));
 }
 
-float CState::GetBasicHeuristicCost(const CState& Another) const 
+float CState::GetBaseHeuristicCost(const CState& Another) const 
 { 
-    return (float) mDefinition.GetHeuristicCost(*this, Another); 
+    return static_cast<float>(mDefinition.GetHeuristicCost(*this, Another));
 }
 
-bool CState::HasIntersection(const CState& Another) const
+bool CState::IsContradictory(const CState& Another) const
 {
     assert(&Another.GetDefinition() == &mDefinition);
 
-    for (int i = 0; i < mValues.size(); i++)
+    const CNumber Tolerance = GetDefinition().GetTolerance();
+    for (int FactIndex = 0; FactIndex < mProperties.size(); FactIndex++)
     {
-        const SInterval& Source = mValues[i];
-        if (!Source)
+        const SSegment& Source = mProperties[FactIndex];
+        if (Source.IsUnset())
         {
             continue;
         }
 
-        const SInterval& Other = Another.GetFact(i);
-        if (!Other)
+        const SSegment& Other = Another.GetProperty(FactIndex);
+        if (Other.IsUnset())
         {
-            return false;
+            return true;
         }
 
-        if (!Source.HasIntersection(Other))
+        if (!Source.HasIntersection(Other, Tolerance))
         {
-            return false;
+            return true;
         }
     }
 
-    return true;
+    return false;
 }
 
 void CState::Clamp() 

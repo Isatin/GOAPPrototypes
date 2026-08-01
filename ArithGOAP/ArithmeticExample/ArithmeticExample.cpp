@@ -1,6 +1,8 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example shows a case of the four arithmetic operations on the same world property.
+// This example shows four effects corresponding to the basic arithmetic operations.
+// Also, it demonstrates that floating-point numbers require tolerance for equality comparisons. 
+// If you try to turn off CNumber::IsEquivalenceApproximate, all planners will fail.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "ExampleUtility/ExampleUtility.h"
@@ -10,51 +12,49 @@ using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    CStateDefinition Definition;
-    const auto& NumberFact = *Definition.DefineNumber("Number");
-    const auto& AdditionCountFact = *Definition.DefineNumber("AddCount");
-    const auto& SubtractCountFact = *Definition.DefineNumber("SubCount");
-    const auto& MultiplicationCountFact = *Definition.DefineNumber("MulCount");
-    const auto& DivisionCountCountFact = *Definition.DefineNumber("DivCount");
+    CFactDefinition Definition;
+    const auto& X = *Definition.DefineNumber("X");
+    const auto& AdditionCount       = *Definition.DefineNumber("AddCount");
+    const auto& SubtractionCount    = *Definition.DefineNumber("SubCount");
+    const auto& MultiplicationCount = *Definition.DefineNumber("MulCount");
+    const auto& DivisionCount       = *Definition.DefineNumber("DivCount");
 
     CState StartingState(Definition);
-    StartingState.SetFact(NumberFact, -100);
-    StartingState.SetFact(AdditionCountFact, 0);
-    StartingState.SetFact(SubtractCountFact, 0);
-    StartingState.SetFact(MultiplicationCountFact, 0);
-    StartingState.SetFact(DivisionCountCountFact, 0);
+    StartingState.SetProperty(X, 0.1);
+    StartingState.SetProperty(AdditionCount, 0);
+    StartingState.SetProperty(SubtractionCount, 0);
+    StartingState.SetProperty(MultiplicationCount, 0);
+    StartingState.SetProperty(DivisionCount, 0);
 
     CState GoalState(Definition);
-    GoalState.SetFact(NumberFact == 249);
+    GoalState.SetProperty(X == 1);
 
     std::vector<CAction> Actions;
     {
-        CAction& Zeroize = Actions.emplace_back("=0", Definition);
-        Zeroize.SetEffect(NumberFact = 0);
+        CAction& Addition = Actions.emplace_back("+0.3", Definition);
+        Addition.SetPrecondition(AdditionCount == 0);
+        Addition.SetEffect(AdditionCount += 1);
+        Addition.SetEffect(X += 0.3);
     }
     {
-        CAction& Add100 = Actions.emplace_back("+100", Definition);
-        Add100.SetPrecondition(AdditionCountFact == 0);
-        Add100.SetEffect(AdditionCountFact += 1);
-        Add100.SetEffect(NumberFact += 100);
+        CAction& Subtraction = Actions.emplace_back("-0.1", Definition);
+        Subtraction.SetPrecondition(SubtractionCount == 0);
+        Subtraction.SetPrecondition(X >= 0.2);
+        Subtraction.SetEffect(SubtractionCount += 1);
+        Subtraction.SetEffect(X -= 0.1);
     }
     {
-        CAction& Decrement = Actions.emplace_back("-1", Definition);
-        Decrement.SetPrecondition(SubtractCountFact == 0);
-        Decrement.SetEffect(SubtractCountFact += 1);
-        Decrement.SetEffect(NumberFact -= 1);
+        CAction& Multiplication = Actions.emplace_back("*100", Definition);
+        Multiplication.SetPrecondition(MultiplicationCount == 0);
+        Multiplication.SetPrecondition(X <= 0.1);
+        Multiplication.SetEffect(MultiplicationCount += 1);
+        Multiplication.SetEffect(X *= 100);
     }
     {
-        CAction& TenTimes = Actions.emplace_back("*10", Definition);
-        TenTimes.SetPrecondition(MultiplicationCountFact == 0);
-        TenTimes.SetEffect(MultiplicationCountFact += 1);
-        TenTimes.SetEffect(NumberFact *= 10);
-    }
-    {
-        CAction& Quarter = Actions.emplace_back("/4", Definition);
-        Quarter.SetPrecondition(DivisionCountCountFact == 0);
-        Quarter.SetEffect(DivisionCountCountFact += 1);
-        Quarter.SetEffect(NumberFact /= 4);
+        CAction& Division = Actions.emplace_back("/30", Definition);
+        Division.SetPrecondition(DivisionCount == 0);
+        Division.SetEffect(DivisionCount += 1);
+        Division.SetEffect(X /= 30);
     }
 
     RunGOAPs(StartingState, GoalState, Actions);

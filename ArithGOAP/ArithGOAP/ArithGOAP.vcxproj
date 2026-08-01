@@ -20,31 +20,34 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Action.h" />
+    <ClInclude Include="AdvRegressionPlanner.h" />
     <ClInclude Include="ArithGOAP.h" />
     <ClInclude Include="Comparer.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="ForwardPlanner.h" />
-    <ClInclude Include="Interval.h" />
-    <ClInclude Include="LUTRegressivePlanner.h" />
+    <ClInclude Include="Node.h" />
     <ClInclude Include="Notation.h" />
     <ClInclude Include="Operator.h" />
     <ClInclude Include="Number.h" />
-    <ClInclude Include="RegressivePlanner.h" />
+    <ClInclude Include="RegressionPlanner.h" />
+    <ClInclude Include="Segment.h" />
+    <ClInclude Include="SizeToInt.h" />
     <ClInclude Include="State.h" />
     <ClInclude Include="Fact.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Action.cpp" />
+    <ClCompile Include="AdvRegressionPlanner.cpp" />
     <ClCompile Include="ArithGOAP.cpp" />
     <ClCompile Include="Comparer.cpp" />
     <ClCompile Include="Effect.cpp" />
     <ClCompile Include="ForwardPlanner.cpp" />
-    <ClCompile Include="Interval.cpp" />
-    <ClCompile Include="LUTRegressivePlanner.cpp" />
+    <ClCompile Include="Node.cpp" />
     <ClCompile Include="Notation.cpp" />
     <ClCompile Include="Operator.cpp" />
     <ClCompile Include="Number.cpp" />
-    <ClCompile Include="RegressivePlanner.cpp" />
+    <ClCompile Include="RegressionPlanner.cpp" />
+    <ClCompile Include="Segment.cpp" />
     <ClCompile Include="State.cpp" />
     <ClCompile Include="Fact.cpp" />
   </ItemGroup>

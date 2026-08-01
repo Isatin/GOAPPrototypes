@@ -1,14 +1,14 @@
 // Copyright 2024 Isaac Hsu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// This example is the monkey and banana problem from 
+// This example is modified from the monkey and banana problem detailed on the following web page:
 // https://en.wikipedia.org/wiki/Stanford_Research_Institute_Problem_Solver.
-// It shows with effect lookup tables the regressive algorithm can be more performant.
-// As proof, compared with the second search, the regression from actions of TakeBanana at A and C 
-// (Ta & Tc) is discontinued in the third search with lookup tables.
+// It shows that the effect lookup tables can improve the efficiency of the regressive search.
+// For instance, when compared with the second search, the ensuing branches for the TakeBanana actions 
+// at A and C (Ta & Tc) are pruned in the final search tree, because their desired constraints, the
+// banana at A and the banana at C, are missing from the tables and not in the starting state.
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
-#include <sstream>
 
 #include "ExampleUtility/ExampleUtility.h"
 
@@ -37,14 +37,14 @@ namespace ELevel
 int main()
 {
     CState GoalState;
-    GoalState.SetFact("HasBanana", true);    
+    GoalState.SetProperty("HasBanana", true);    
 
     CState StartingState;
-    StartingState.SetFact("At", EPlace::A);
-    StartingState.SetFact("Level", ELevel::low);
-    StartingState.SetFact("BoxAt", EPlace::C);
-    StartingState.SetFact("BananaAt", EPlace::B);
-    StartingState.SetFact("HasBanana", false);
+    StartingState.SetProperty("At", EPlace::A);
+    StartingState.SetProperty("Level", ELevel::low);
+    StartingState.SetProperty("BoxAt", EPlace::C);
+    StartingState.SetProperty("BananaAt", EPlace::B);
+    StartingState.SetProperty("HasBanana", false);
 
     std::vector<CAction> Actions;
 
@@ -54,9 +54,10 @@ int main()
         {
             if (i != j)
             {
-                std::stringstream Stream;
-                Stream << "G" << char('a' + i) << char('a' + j);
-                CAction& Goto = Actions.emplace_back(Stream.str());
+                std::string Name = "G";
+                Name += char('a' + i);
+                Name += char('a' + j);
+                CAction& Goto = Actions.emplace_back(Name);
                 Goto.SetPrecondition("Level", ELevel::low);
                 Goto.SetPrecondition("At", i);
                 Goto.SetEffect("At", j);
@@ -70,9 +71,10 @@ int main()
         {
             if (i != j)
             {
-                std::stringstream Stream;
-                Stream << "M" << char('a' + i) << char('a' + j);
-                CAction& MoveBox = Actions.emplace_back(Stream.str());
+                std::string Name = "M";
+                Name += char('a' + i);
+                Name += char('a' + j);
+                CAction& MoveBox = Actions.emplace_back(Name);
                 MoveBox.SetPrecondition("Level", ELevel::low);
                 MoveBox.SetPrecondition("At", i);
                 MoveBox.SetPrecondition("BoxAt", i);
@@ -84,9 +86,9 @@ int main()
 
     for (int i = EPlace::A; i <= EPlace::C; i++)
     {
-        std::stringstream Stream;
-        Stream << "U" << char('a' + i);
-        CAction& ClimbUp = Actions.emplace_back(Stream.str());
+        std::string Name = "U";
+        Name += char('a' + i);
+        CAction& ClimbUp = Actions.emplace_back(Name);
         ClimbUp.SetPrecondition("At", i);
         ClimbUp.SetPrecondition("BoxAt", i);
         ClimbUp.SetPrecondition("Level", ELevel::low);
@@ -95,9 +97,9 @@ int main()
 
     for (int i = EPlace::A; i <= EPlace::C; i++)
     {
-        std::stringstream Stream;
-        Stream << "D" << char('a' + i);
-        CAction& ClimbDown = Actions.emplace_back(Stream.str());
+        std::string Name = "D";
+        Name += char('a' + i);
+        CAction& ClimbDown = Actions.emplace_back(Name);
         ClimbDown.SetPrecondition("At", i);
         ClimbDown.SetPrecondition("BoxAt", i);
         ClimbDown.SetPrecondition("Level", ELevel::high);
@@ -106,9 +108,9 @@ int main()
 
     for (int i = EPlace::A; i <= EPlace::C; i++)
     {
-        std::stringstream Stream;
-        Stream << "T" << char('a' + i);
-        CAction& TakeBanana = Actions.emplace_back(Stream.str());
+        std::string Name = "T";
+        Name += char('a' + i);
+        CAction& TakeBanana = Actions.emplace_back(Name);
         TakeBanana.SetPrecondition("At", i);
         TakeBanana.SetPrecondition("BananaAt", i);
         TakeBanana.SetPrecondition("Level", ELevel::high);

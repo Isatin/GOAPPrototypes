@@ -1,28 +1,17 @@
 // Copyright 2024 Isaac Hsu
 
-#include <sstream>
+#include <cassert>
 
 #include "Operator.h"
 
 
 using namespace ArithGOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-const EOperator EOperator::Assign(assign);
-const EOperator EOperator::Negation(negation);
-const EOperator EOperator::Addition(addition);
-const EOperator EOperator::Multiplication(multiplication);
-///////////////////////////////////////////////////////////////////////////////////////////////////
-EOperator& EOperator::operator = (int Value)
-{
-    mValue = static_cast<Type>(Value);
-    return *this;
-}
-
 int EOperator::GetArity() const
 {
     switch (mValue)
     {
-    case assign:            return 2;
+    case assignment:        return 2;
     case negation:          return 1;
     case addition:          return 2;
     case multiplication:    return 2;
@@ -36,41 +25,45 @@ const char* EOperator::GetName() const
     switch (mValue)
     {
     case nil:               return "Nil";
-    case assign:            return "Assign";
+    case assignment:        return "Assignment";
     case negation:          return "Negation";
     case addition:          return "Addition";
     case multiplication:    return "Multiplication";
     }
 
-    return "";
+    return "UNDEF";
 }
 
 const char* EOperator::GetSymbol() const
 {
     switch (mValue)
     {
-    case assign:            return "=";
+    case nil:               return "";
+    case assignment:        return "=";
     case negation:          return "!";
     case addition:          return "+=";
     case multiplication:    return "*=";
     }
 
+    assert(!"Invalid operator type");
     return "";
 }
 
-std::string EOperator::ToString(const std::string& Subject) const
+std::string EOperator::Stringize(const std::string& Subject) const
 {
-    std::stringstream Stream;
+    std::string Return;
 
     if (GetArity() == 1)
     {
-        Stream << GetSymbol() << Subject;
+        Return = GetSymbol();
+        Return += Subject;
     }
     else
     {
-        Stream << Subject << GetSymbol();
+        Return = Subject;
+        Return += GetSymbol();
     }
 
-    return Stream.str();
+    return Return;
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////

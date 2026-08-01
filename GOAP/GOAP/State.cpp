@@ -1,7 +1,6 @@
 // Copyright 2024 Isaac Hsu
 
 #include <map>
-#include <sstream>
 
 #include "State.h"
 
@@ -10,30 +9,69 @@ using namespace GOAP;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 std::string CState::ToString() const
 {
-    std::stringstream Stream;
-    bool First = true;
+    std::string Return;
+    bool Successive = false;
 
-    for (const auto [Key, Value] : mFactMap)
+    for (const auto& [Name, Value] : mPropertyMap)
     {
-        if (First)
+        if (Successive)
         {
-            First = false;
+            Return += ", ";
         }
         else
         {
-            Stream << ", ";
+            Successive = true;
         }
 
-        Stream << Key << "=" << Value;
+        Return += Name;
+        Return += "=";
+        Return += std::to_string(Value);
     }
 
-    return Stream.str();
+    return Return;
 }
 
-std::optional<PFact> CState::GetFact(const std::string& Key) const
+std::string CState::Stringize(const CState& Another) const
 {
-    auto it = mFactMap.find(Key);
-    if (it == mFactMap.end())
+    std::string Return;
+    bool Successive = false;
+
+    for (const auto& [Name, Value] : mPropertyMap)
+    {
+        if (Successive)
+        {
+            Return += ", ";
+        }
+        else
+        {
+            Successive = true;
+        }
+
+        Return += Name;
+        Return += "=";
+
+        std::optional<BProperty> Other = Another.GetProperty(Name);
+        if (Other)
+        {
+            Return += "(";
+            Return += std::to_string(Value);
+            Return += Value == Other ? "==" : "!=";
+            Return += std::to_string(*Other);
+            Return += ")";
+        }
+        else
+        {
+            Return += std::to_string(Value);
+        }
+    }
+
+    return Return;
+}
+
+std::optional<BProperty> CState::GetProperty(const std::string& Name) const
+{
+    auto it = mPropertyMap.find(Name);
+    if (it == mPropertyMap.end())
     {
         return {};
     }
@@ -41,17 +79,17 @@ std::optional<PFact> CState::GetFact(const std::string& Key) const
     return it->second;
 }
 
-void CState::SetFact(const std::string& Key, PFact Value)
+void CState::SetProperty(const std::string& Name, BProperty Value)
 {
-    mFactMap.emplace(Key, Value);
+    mPropertyMap.emplace(Name, Value);
 }
 
 bool CState::IsSatisfiedBy(const CState& Another) const
 {
-    for (auto& [Key, Aim] : mFactMap)
+    for (auto& [Name, Target] : mPropertyMap)
     {
-        std::optional<PFact> Other = Another.GetFact(Key);
-        if (Other != Aim)
+        std::optional<BProperty> Other = Another.GetProperty(Name);
+        if (Other != Target)
         {
             return false;
         }
@@ -60,14 +98,14 @@ bool CState::IsSatisfiedBy(const CState& Another) const
     return true;
 }
 
-int CState::GetUnsatisfactionCount(const CState& Another) const
+int CState::CountUnsatisfiedProperties(const CState& Another) const
 {
     int Count = 0;
 
-    for (auto& [Key, Aim] : mFactMap)
+    for (auto& [Name, Target] : mPropertyMap)
     {
-        std::optional<PFact> Other = Another.GetFact(Key);
-        if (Other != Aim)
+        std::optional<BProperty> Other = Another.GetProperty(Name);
+        if (Other != Target)
         {
             Count++;
         }
@@ -78,20 +116,42 @@ int CState::GetUnsatisfactionCount(const CState& Another) const
 
 void CState::Overwrite(CState& Another) const
 {
-    for (const auto [Key, Value] : mFactMap)
+    for (const auto& [Name, Value] : mPropertyMap)
     {
-        Another.mFactMap[Key] = Value;
+        Another.mPropertyMap[Name] = Value;
+    }
+}
+
+void CState::CopyProperties(const CState& Source, const CState& Filter)
+{
+    for (auto& [Name, Target] : Filter)
+    {
+        if (std::optional<BProperty> Value = Source.GetProperty(Name))
+        {
+            mPropertyMap[Name] = *Value;
+        }
+    }
+}
+
+void CState::InitializeProperties(const CState& Source, const CState& Filter)
+{
+    for (auto [Name, Target] : Filter)
+    {
+        if (std::optional<BProperty> Value = Source.GetProperty(Name))
+        {
+            mPropertyMap.emplace(Name, *Value); // unordered_map::emplace doesn't replace existing elements.
+        }
     }
 }
 
 void CState::RemoveMatch(const CState& Another)
 {
-    for (auto it = mFactMap.begin(); it != mFactMap.end();)
+    for (auto it = mPropertyMap.begin(); it != mPropertyMap.end();)
     {
-        std::optional<PFact> Other = Another.GetFact(it->first);
+        std::optional<BProperty> Other = Another.GetProperty(it->first);
         if (Other == it->second)
         {
-            it = mFactMap.erase(it);
+            it = mPropertyMap.erase(it);
         }
         else
         {
