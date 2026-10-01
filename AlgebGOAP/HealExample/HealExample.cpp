@@ -55,16 +55,16 @@ int main()
         Heal.AddEffect(SP -= HealSP);
     }
     {
-        CAction& BuffCoefficient = Actions.emplace_back("Coef+", Definition);
-        BuffCoefficient.SetPrecondition(SP >= BuffSP && Coef <= 1);
-        BuffCoefficient.AddEffect(SP -= BuffSP);
-        BuffCoefficient.AddEffect(Coef += BuffCoefInc);
+        CAction& BuffCoef = Actions.emplace_back("Coef+", Definition);
+        BuffCoef.SetPrecondition(SP >= BuffSP && Coef <= 1);
+        BuffCoef.AddEffect(Coef += BuffCoefInc);
+        BuffCoef.AddEffect(SP -= BuffSP);
     }
     {
         CAction& BuffBonus = Actions.emplace_back("Bonus+", Definition);
         BuffBonus.SetPrecondition(SP >= BuffSP && Bonus <= 0);
-        BuffBonus.AddEffect(SP -= BuffSP);
         BuffBonus.AddEffect(Bonus += BuffBonusInc);
+        BuffBonus.AddEffect(SP -= BuffSP);
     }
     std::cout << "    IGNORING SP COSTS\n";
     RunGOAPs(StartingState, GoalCondition, Actions);
